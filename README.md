@@ -10,5 +10,5 @@ $ git clone https://github.com/erstool37/slurry_viscnet
 ```
 
 ## Contributors
-Moon Ju Hyeon of SNU Mechanical Engineering department
-Son Jong Wohn of SNU Biochemical Engineering department
+Ju Hyeon Moon of SNU Mechanical Engineering department
+Jong Won Sohn of SNU Chemical Biological Engineering department
