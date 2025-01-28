@@ -95,7 +95,6 @@ function Water() {
     }\
   ');
 
-  //sphereShader 
   this.sphereShader = new GL.Shader(vertexShader, '\
     uniform sampler2D texture;\
     uniform vec3 oldCenter;\
