@@ -21,19 +21,14 @@ function handleError(text) {
   loading.innerHTML = html;
   loading.style.zIndex = 1;
 }
-
 window.onerror = handleError;
 
 var gl = GL.create();
 var water;
 var cubemap;
 var renderer;
-
-//camera angles
-var angleX = 90;
-var angleY = 0;
-
-// Sphere physics info
+var angleX = 90; //camera angleX
+var angleY = 0;  //camera angleY
 var useSpherePhysics = false;
 var center;
 var oldCenter;
@@ -42,28 +37,38 @@ var gravity;
 var radius;
 var paused = false;
 
+//After window loading, the following function will be executed
 window.onload = function () {
   var ratio = window.devicePixelRatio || 1;
   var help = document.getElementById('help');
 
+  //canvas and viewport definition
   function onresize() {
-    var width = innerWidth - help.clientWidth - 20;
+    var width = innerWidth;
     var height = innerHeight;
     gl.canvas.width = width * ratio;
     gl.canvas.height = height * ratio;
     gl.canvas.style.width = width + 'px';
     gl.canvas.style.height = height + 'px';
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    //left viewport define
+    gl.viewport(0, 0, gl.canvas.width / 2, gl.canvas.height);
     gl.matrixMode(gl.PROJECTION);
     gl.loadIdentity();
-    gl.perspective(30, gl.canvas.width / gl.canvas.height, 0.01, 100);
+    gl.perspective(30, (gl.canvas.width / 2) / gl.canvas.height, 0.01, 100);
     gl.matrixMode(gl.MODELVIEW);
-    draw();
-  }
+
+    //right viewport define
+    gl.viewport(gl.canvas.width / 2, 0, gl.canvas.width / 2, gl.canvas.height);
+    gl.matrixMode(gl.PROJECTION);
+    gl.loadIdentity();
+    gl.perspective(30, (gl.canvas.width / 2) / gl.canvas.height, 0.01, 100);
+    gl.matrixMode(gl.MODELVIEW);
+  } 
 
   //background color settings
   document.body.appendChild(gl.canvas);
-  gl.clearColor(0, 0, 0, 0);
+  gl.clearColor(1, 1, 1, 1);
 
   water = new Water();
   renderer = new Renderer();
@@ -81,15 +86,10 @@ window.onload = function () {
   }
 
   // starting sphere physics settings
-  center = oldCenter = new GL.Vector(-0.0, 0.0, 4.0);  //x, z, y
+  center = oldCenter = new GL.Vector(-0.0, 0.0, 4.0);  //y axis is considered as height, and z axis is the depth
   velocity = new GL.Vector();
   gravity = new GL.Vector(0, -2.0, 0);
   radius = 0.05;
-
-  //Use it further to create vortices
-  for (var i = 0; i < 20; i++) {
-    water.addDrop(0., 0., 0.03, (i & 1) ? 0.01 : -0.01);
-  }
 
   document.getElementById('loading').innerHTML = '';
   onresize();
@@ -100,18 +100,20 @@ window.onload = function () {
     function (callback) { setTimeout(callback, 0); };
 
   var prevTime = new Date().getTime();
+  
   function animate() {
     var nextTime = new Date().getTime();
     if (!paused) {
       update((nextTime - prevTime) / 1000);
-      draw();
+      drawLeft();
+      drawRight();
     }
     prevTime = nextTime;
-    requestAnimationFrame(animate);
+    requestAnimationFrame(animate); ///Recursion, browser efficient thru 'requestAnimationFrame'
   }
-  requestAnimationFrame(animate);
 
-  window.onresize = onresize;
+  requestAnimationFrame(animate); //animating through using 1)update, 2)draw
+  window.onresize = onresize; //resizing window adjustments
 
   var prevHit;
   var planeNormal;
@@ -141,13 +143,14 @@ window.onload = function () {
     }
   }
 
+  //mouse drag event defined
   function duringDrag(x, y) {
     switch (mode) {
       case MODE_ADD_DROPS: {
         var tracer = new GL.Raytracer();
         var ray = tracer.getRayForPixel(x * ratio, y * ratio);
         var pointOnPlane = tracer.eye.add(ray.multiply(-tracer.eye.y / ray.y));
-        water.addDrop(pointOnPlane.x, pointOnPlane.z, 0.04, 0.04);//b, a is radius and strength
+        water.addDrop(pointOnPlane.x, pointOnPlane.z, 0.04, 0.1);//b, a is radius and strength
         if (paused) {
           water.updateNormals();
           renderer.updateCaustics(water);
@@ -176,7 +179,10 @@ window.onload = function () {
     }
     oldX = x;
     oldY = y;
-    if (paused) draw();
+    if (paused) {
+      drawLeft();
+      drawRight();
+    }
   }
 
   function stopDrag() {
@@ -224,7 +230,7 @@ window.onload = function () {
   document.onkeydown = function (e) {
     if (e.which == ' '.charCodeAt(0)) paused = !paused;
     else if (e.which == 'G'.charCodeAt(0)) useSpherePhysics = !useSpherePhysics;
-    else if (e.which == 'L'.charCodeAt(0) && paused) draw();
+    else if (e.which == 'L'.charCodeAt(0) && paused) drawLeft(); drawRight();
   };
 
   var frame = 0;
@@ -232,7 +238,6 @@ window.onload = function () {
   function update(seconds) {
     if (seconds > 1) return;
     frame += seconds * 2;
-
     if (mode == MODE_MOVE_SPHERE) {
       // Start from rest when the player releases the mouse after moving the sphere
       velocity = new GL.Vector();
@@ -260,26 +265,52 @@ window.onload = function () {
     renderer.updateCaustics(water);
   }
 
-  function draw() {
-    // Change the light direction to the camera look vector when the L key is pressed
-    if (GL.keys.L) {
-      renderer.lightDir = GL.Vector.fromAngles((90 - angleY) * Math.PI / 180, -angleX * Math.PI / 180);
-      if (paused) renderer.updateCaustics(water);
+function drawLeft() {
+  gl.viewport(0, 0, gl.canvas.width / 2, gl.canvas.height);
 
-    }
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.loadIdentity();
-    gl.translate(0, 0, -4);
-    gl.rotate(-angleX, 1, 0, 0);
-    gl.rotate(-angleY, 0, 1, 0);
-    gl.translate(0, 0.5, 0);
-
-    gl.enable(gl.DEPTH_TEST);
-    renderer.sphereCenter = center;
-    renderer.sphereRadius = radius;
-    renderer.renderCube();
-    renderer.renderWater(water, cubemap);
-    renderer.renderSphere();
-    gl.disable(gl.DEPTH_TEST);
+  // Change the light direction to the camera look vector where the L key is pressed
+  if (GL.keys.L) {
+    renderer.lightDir = GL.Vector.fromAngles((90 - angleY) * Math.PI / 180, -angleX * Math.PI / 180);
+    if (paused) renderer.updateCaustics(water);
   }
-};
+
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.loadIdentity();
+  gl.translate(0, 0, -4); //camera position, ensure fitting within viewport
+  gl.rotate(-angleX, 1, 0, 0); //camera angleX
+  gl.rotate(-angleY, 0, 1, 0); //camera angleY
+  gl.translate(0, 0.5, 0); //camera position, fix after rotation
+
+  gl.enable(gl.DEPTH_TEST); //camera depth buffer(distance from the camera) testing
+  renderer.sphereCenter = center;
+  renderer.sphereRadius = radius;
+  renderer.renderCube(); //render cube
+  renderer.renderWater(water, cubemap); //render water
+  renderer.renderSphere(); //render sphere
+  gl.disable(gl.DEPTH_TEST);
+}
+
+function drawRight() {
+  gl.viewport(gl.canvas.width / 2, 0, gl.canvas.width / 2, gl.canvas.height);
+
+  // Change the light direction to the camera look vector where the L key is pressed
+  if (GL.keys.L) {
+    renderer.lightDir = GL.Vector.fromAngles((90 - angleY) * Math.PI / 180, -angleX * Math.PI / 180);
+    if (paused) renderer.updateCaustics(water);
+  }
+
+  gl.loadIdentity();
+  gl.translate(0, 0, -4);
+  gl.rotate(-angleX, 1, 0, 0);
+  gl.rotate(-angleY, 0, 1, 0);
+  gl.translate(0, 0.5, 0);
+
+  gl.enable(gl.DEPTH_TEST);
+  renderer.sphereCenter = center;
+  renderer.sphereRadius = radius;
+  renderer.renderCube();
+  renderer.renderWaterMask(water, cubemap); //Masked rendered Water
+  renderer.renderSphere();
+  gl.disable(gl.DEPTH_TEST);
+  }
+}
