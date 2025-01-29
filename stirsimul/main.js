@@ -69,7 +69,6 @@ window.onload = function () {
   //background color settings
   document.body.appendChild(gl.canvas);
   gl.clearColor(1, 1, 1, 1);
-
   water = new Water();
   renderer = new Renderer();
   cubemap = new Cubemap({
@@ -99,19 +98,34 @@ window.onload = function () {
     window.webkitRequestAnimationFrame ||
     function (callback) { setTimeout(callback, 0); };
 
-  var prevTime = new Date().getTime();
-  
-  function animate() {
-    var nextTime = new Date().getTime();
-    if (!paused) {
-      update((nextTime - prevTime) / 1000);
-      drawLeft();
-      drawRight();
-    }
-    prevTime = nextTime;
-    requestAnimationFrame(animate); ///Recursion, browser efficient thru 'requestAnimationFrame'
-  }
+  var prevTime = Date.now();
+  var startTime = Date.now();
+  var Duration = 60000; 
+  var dropInterval = 300;
+  var lastDropTime = startTime;
+  var lastCaptureTime = startTime;
+  var captureInterval = 62.5; // 16 frames per second = 1000/16 = 62.5 ms per frame
 
+  function animate() {
+      var nextTime = Date.now();
+      var timeGap = nextTime - startTime;
+      if (!paused) {
+        update((nextTime - prevTime) / 1000);
+        drawLeft();
+        drawRight();
+        if (timeGap < Duration && nextTime - lastDropTime >= dropInterval) {
+            water.addDrop(Math.random() * 2 - 1, Math.random() * 2 - 1, 0.04, 0.1);
+            lastDropTime = nextTime;
+        }
+        if (nextTime - lastCaptureTime >= captureInterval && captureCount === 0) {
+          lastCaptureTime = nextTime;
+          captureCanvas(canvas); // Store data URL in captures array
+        }
+      }
+      prevTime = nextTime;
+      requestAnimationFrame(animate);
+    }
+    
   requestAnimationFrame(animate); //animating through using 1)update, 2)draw
   window.onresize = onresize; //resizing window adjustments
 
@@ -312,5 +326,110 @@ function drawRight() {
   renderer.renderWaterMask(water, cubemap); //Masked rendered Water
   renderer.renderSphere();
   gl.disable(gl.DEPTH_TEST);
+  }
+
+//Capture Functions
+const maxImages = 960; // 60 seconds * 16 frames per second
+var captureCount = 0;
+const canvas = document.querySelector('canvas') //canvas is not defined in html but generated in light.js, so linkages are made here
+const fixedWidth = 1920;
+const fixedHeight = 960;
+const captures = [];
+
+function captureCanvas(canvas) {
+  if (!canvas) {
+    console.error("Main Canvas not found");
+    return;
+  }
+  if (captureCount === 0) {
+    console.log("Capturing frames...");
+    //offscreen canvas define and draw
+    const offscreenCanvas = document.createElement('canvas'); 
+    offscreenCanvas.width = canvas.width;
+    offscreenCanvas.height = canvas.height;  
+    const offscreenCtx = offscreenCanvas.getContext('2d');
+    offscreenCtx.drawImage(canvas, 0, 0);
+  
+    //left offscreencanvas
+    const leftCanvas = document.createElement('canvas');
+    leftCanvas.width = fixedWidth / 2;
+    leftCanvas.height = fixedHeight;
+    const leftCtx = leftCanvas.getContext('2d');
+    leftCtx.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width/2, offscreenCanvas.height, 0, 0, leftCanvas.width, leftCanvas.height);
+
+    //right offscreencanvas with greyscale filter
+    const rightCanvas = document.createElement('canvas');
+    rightCanvas.width = offscreenCanvas.width / 2;
+    rightCanvas.height = offscreenCanvas.height;
+    const rightCtx = rightCanvas.getContext('2d');
+    rightCtx.filter = 'grayscale(1)'; //greyscale filter 
+    rightCtx.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width/2, offscreenCanvas.height, 0, 0, rightCanvas.width, rightCanvas.height);
+
+    const dataURL = canvas.toDataURL('image/png');
+    const rawdataURL = leftCanvas.toDataURL('image/png'); //Base64-encoded data URL
+    const maskeddataURL = rightCanvas.toDataURL('image/png'); 
+    captures.push({real: dataURL, raw: rawdataURL, masked: maskeddataURL}); // Push it into the captures array
+    
+    if(captures.length % 100 === 0) { 
+      console.log(`Captured frame #${captures.length}`);
+    }
+    if(captures.length >= maxImages){
+      alert("Maximum number of captures reached, downloading now");
+      bulkDownloadCaptures();
+      captureCount +=1;
+    }
+  }
+}
+
+  function bulkDownloadCaptures() {
+    let zip = new JSZip();
+    //let realFolder = zip.folder("real"); captures the whole canvas
+    let rawFolder = zip.folder("raw");
+    let maskedFolder = zip.folder("masked");
+
+    captures.forEach((capture, index) => {
+    const {raw, masked} = capture; 
+     
+    //const realbase64Data = real.split(',')[1]; // Extract base64 data for real
+      const rawbase64Data = raw.split(',')[1]; // Extract base64 data for raw
+      const maskedbase64Data = masked.split(',')[1]; // Extract base64 data for masked
+
+    //const realbinaryData = atob(realbase64Data); // Decode Base64 data
+      const rawbinaryData = atob(rawbase64Data); // Decode Base64 data
+      const maskedbinaryData = atob(maskedbase64Data);
+
+    //const realarrayBuffer = new Uint8Array(realbinaryData.length);
+      const rawarrayBuffer = new Uint8Array(rawbinaryData.length); 
+      const maskedarrayBuffer = new Uint8Array(maskedbinaryData.length);
+
+    /*for (let i = 0; i < realbinaryData.length; i++) {
+        realarrayBuffer[i] = realbinaryData.charCodeAt(i);
+      } */  
+      for (let i = 0; i < rawbinaryData.length; i++) {
+        rawarrayBuffer[i] = rawbinaryData.charCodeAt(i);
+      }
+      
+      for (let i = 0; i < maskedbinaryData.length; i++) {
+        maskedarrayBuffer[i] = maskedbinaryData.charCodeAt(i);
+      }
+      
+      //const realBlob = new Blob([realarrayBuffer], { type: "image/png" }); // Create blobs for real and masked images
+      const rawBlob = new Blob([rawarrayBuffer], { type: "image/png" });   // Create blobs for raw and masked images
+      const maskedBlob = new Blob([maskedarrayBuffer], { type: "image/png" });
+    
+      //realFolder.file(`real_${index + 1}.png`, realBlob); // Add images to respective folders
+      rawFolder.file(`raw_${index + 1}.png`, rawBlob); // Add images to respective folders
+      maskedFolder.file(`masked_${index + 1}.png`, maskedBlob);
+    });
+
+    // Generate and download the zip file
+    zip.generateAsync({ type: "blob" }).then((content) => {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(content);
+      link.download = "captures.zip"; // Name of the zip file
+      link.click();
+      captures.length = 0; // Clear captures array after download
+      console.log("Captures array cleared.");
+    });
   }
 }

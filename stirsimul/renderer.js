@@ -11,9 +11,9 @@ var helperFunctions = '\
   const float IOR_AIR = 1.0;\
   const float IOR_WATER = 1.8;\
   const vec3 abovewaterColor = vec3(0.14, 0.5, 0.85);\
-  const vec3 abovewaterColorMask =vec3(0.0, 0.0, 0.0);\
-  const vec3 underwaterColor = vec3(0.5, 0.5, 0.5);\
-  const vec3 underwaterColorMask = vec3(0.0, 0.0, 0.0);\
+  const vec3 abovewaterColorMask =vec3(0.4, 0.4, 0.4);\
+  const vec3 underwaterColor = vec3(0.14, 0.5, 0.85);\
+  const vec3 underwaterfColorMask = vec3(0.4, 0.4, 0.4);\
   const float poolHeight = 1.0;\
   uniform vec3 light;\
   uniform vec3 sphereCenter;\
@@ -105,7 +105,6 @@ var helperFunctions = '\
   }\
 ';
 
-
 function Renderer() {
   this.tileTexture = GL.Texture.fromImage(document.getElementById('tiles'), {
     minFilter: gl.LINEAR_MIPMAP_LINEAR,
@@ -115,7 +114,7 @@ function Renderer() {
 
   this.lightDir = new GL.Vector(0.0, 4.0, 0.0).unit(); //starting light direction setting
   this.causticTex = new GL.Texture(1024, 1024);
-  this.waterMesh = GL.Mesh.plane({ detail: 200 }) //.transform(GL.Matrix.scale(0.5,0.5,0.5)); to alter the size
+  this.waterMesh = GL.Mesh.plane({ detail: 200 });
   this.waterShaders = [];
   this.waterShadersMask = [];
   for (var i = 0; i < 2; i++) {
@@ -173,7 +172,7 @@ function Renderer() {
           normal = -normal;\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_WATER / IOR_AIR);\
-          float fresnel = mix(0.2, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0))*1.5;\
+          float fresnel = mix(1.0, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0))*1.5;\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, underwaterColor);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, vec3(1.0)) * vec3(0.5, 0.8, 0.9);\
@@ -182,9 +181,9 @@ function Renderer() {
         ' : /* above water */ '\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);\
-          float fresnel = mix(0.2, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
+          float fresnel = mix(1.0, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
           \
-          vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColor);\
+          vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColor) * 2.5;\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColor);\
           \
           gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);\
@@ -245,7 +244,7 @@ function Renderer() {
           normal = -normal;\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_WATER / IOR_AIR);\
-          float fresnel = mix(0.8, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0))*1.5;\
+          float fresnel = mix(0.2, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0))*1.5;\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, underwaterColorMask);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, vec3(1.0)) * vec3(0.5, 0.8, 0.9);\
@@ -254,7 +253,7 @@ function Renderer() {
         ' : /* above water */ '\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);\
-          float fresnel = mix(0.8, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
+          float fresnel = mix(0.2, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColorMask);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColorMask);\
