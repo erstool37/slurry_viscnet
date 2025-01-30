@@ -13,7 +13,7 @@ var helperFunctions = '\
   const vec3 abovewaterColor = vec3(0.14, 0.5, 0.85);\
   const vec3 abovewaterColorMask =vec3(0.4, 0.4, 0.4);\
   const vec3 underwaterColor = vec3(0.14, 0.5, 0.85);\
-  const vec3 underwaterfColorMask = vec3(0.4, 0.4, 0.4);\
+  const vec3 underwaterColorMask = vec3(0.4, 0.4, 0.4);\
   const float poolHeight = 1.0;\
   uniform vec3 light;\
   uniform vec3 sphereCenter;\
@@ -296,7 +296,7 @@ function Renderer() {
       gl_FragColor = vec4(getWallColor(position), 1.0);\
       vec4 info = texture2D(water, position.xz * 0.5 + 0.5);\
       if (position.y < info.r) {\
-        gl_FragColor.rgb *= underwaterColor * 1.2;\
+        gl_FragColor.rgb *= underwaterColor;\
       }\
     }\
   ');
