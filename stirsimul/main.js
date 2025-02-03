@@ -27,7 +27,7 @@ var gl = GL.create();
 var water;
 var cubemap;
 var renderer;
-var angleX = 90; //camera angleX
+var angleX = -90; //camera angleX
 var angleY = 0;  //camera angleY
 var useSpherePhysics = false;
 var center;
@@ -101,7 +101,7 @@ window.onload = function () {
   var prevTime = Date.now();
   var startTime = Date.now();
   var Duration = 60000; 
-  var dropInterval = 300;
+  var dropInterval = 1000;
   var lastDropTime = startTime;
   var lastCaptureTime = startTime;
   var captureInterval = 62.5; // 16 frames per second = 1000/16 = 62.5 ms per frame
