@@ -9,13 +9,14 @@
 //water color
 var helperFunctions = '\
   const float IOR_AIR = 1.0;\
-  const float IOR_WATER = 1.8;\
+  const float IOR_WATER = 1.4;\
   const vec3 abovewaterColor = vec3(0.14, 0.5, 0.85);\
   const vec3 abovewaterColorMask =vec3(0.4, 0.4, 0.4);\
   const vec3 underwaterColor = vec3(0.14, 0.5, 0.85);\
   const vec3 underwaterColorMask = vec3(0.4, 0.4, 0.4);\
   const float poolHeight = 1.0;\
   uniform vec3 light;\
+  uniform vec3 light2;\
   uniform vec3 sphereCenter;\
   uniform float sphereRadius;\
   uniform sampler2D tiles;\
@@ -55,7 +56,7 @@ var helperFunctions = '\
     \
     /* caustics */\
     vec3 sphereNormal = (point - sphereCenter) / sphereRadius;\
-    vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);\
+    vec3 refractedLight = refract(-normalize(light+light2), vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);\
     float diffuse = max(0.0, dot(-refractedLight, sphereNormal)) * 0.5;\
     vec4 info = texture2D(water, point.xz * 0.5 + 0.5);\
     if (point.y < info.r) {\
@@ -87,7 +88,7 @@ var helperFunctions = '\
     scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0); /* sphere ambient occlusion */\
     \
     /* caustics */\
-    vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);\
+    vec3 refractedLight = -refract(-normalize(light+light2), vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);\
     float diffuse = max(0.0, dot(refractedLight, normal));\
     vec4 info = texture2D(water, point.xz * 0.5 + 0.5);\
     if (point.y < info.r) {\
@@ -112,7 +113,8 @@ function Renderer() {
     format: gl.RGB
   });
 
-  this.lightDir = new GL.Vector(0.0, 4.0, 0.0).unit(); //starting light direction setting
+  this.lightDir = new GL.Vector(0.0, 4.0, 0.0).unit();
+  this.lightDir2 = new GL.Vector(0.0, 12.0, 4.0).unit(); //starting light direction setting
   this.causticTex = new GL.Texture(1024, 1024);
   this.waterMesh = GL.Mesh.plane({ detail: 200 });
   this.waterShaders = [];
@@ -147,8 +149,10 @@ function Renderer() {
           if (hit.y < 2.0 / 12.0) {\
             color = getWallColor(hit);\
           } else {\
+            vec3 lightEffect1 = vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
+            vec3 lightEffect2 = vec3(pow(max(0.0, dot(light2, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
             color = textureCube(sky, ray).rgb;\
-            color += vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
+            color += lightEffect1 + lightEffect2;\
           }\
         }\
         if (ray.y < 0.0) color *= waterColor;\
@@ -172,7 +176,7 @@ function Renderer() {
           normal = -normal;\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_WATER / IOR_AIR);\
-          float fresnel = mix(1.0, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0))*1.5;\
+          float fresnel = mix(0.5, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0))*1.5;\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, underwaterColor);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, vec3(1.0)) * vec3(0.5, 0.8, 0.9);\
@@ -181,7 +185,7 @@ function Renderer() {
         ' : /* above water */ '\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);\
-          float fresnel = mix(1.0, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
+          float fresnel = mix(0.5, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColor) * 2.5;\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColor);\
@@ -219,8 +223,11 @@ function Renderer() {
           if (hit.y < 2.0 / 12.0) {\
             color = getWallColor(hit);\
           } else {\
+            vec3 lightEffect1 = vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
+            vec3 lightEffect2 = vec3(pow(max(0.0, dot(light2, ray)), 5000.0)) * vec3(5.0, 3.0, 2.0);\
+            \
             color = textureCube(sky, ray).rgb;\
-            color += vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
+            color += lightEffect1 + lightEffect2;\
           }\
         }\
         if (ray.y < 0.0) color *= waterColor;\
@@ -244,7 +251,7 @@ function Renderer() {
           normal = -normal;\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_WATER / IOR_AIR);\
-          float fresnel = mix(0.2, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0))*1.5;\
+          float fresnel = mix(0.8, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0))*1.5;\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, underwaterColorMask);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, vec3(1.0)) * vec3(0.5, 0.8, 0.9);\
@@ -253,12 +260,18 @@ function Renderer() {
         ' : /* above water */ '\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);\
-          float fresnel = mix(0.2, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
+          float fresnel = pow(1.0 - dot(normal, -incomingRay), 3.0);\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColorMask);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColorMask);\
           \
-          gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);\
+          float threshold = 0.7;\
+          float binaryFresnel = fresnel > threshold ? 1.0 : 0.0;\
+          vec3 finalColor = mix(refractedColor, reflectedColor, binaryFresnel);\
+          \
+          float brightness = dot(finalColor, vec3(0.299, 0.587, 0.114));\
+          finalColor = brightness > 0.3 ? vec3(1.0) : vec3(0.0);\
+          gl_FragColor = vec4(finalColor, 1.0);\
         ') + '\
       }\
     ');
@@ -322,7 +335,7 @@ function Renderer() {
       vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);\
       \
       /* project the vertices along the refracted vertex ray */\
-      vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);\
+      vec3 refractedLight = refract(-normalize(light+light2), vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);\
       ray = refract(-light, normal, IOR_AIR / IOR_WATER);\
       oldPos = project(gl_Vertex.xzy, refractedLight, refractedLight);\
       newPos = project(gl_Vertex.xzy + vec3(0.0, info.r, 0.0), ray, refractedLight);\
@@ -345,7 +358,7 @@ function Renderer() {
         gl_FragColor = vec4(0.2, 0.2, 0.0, 0.0);\
       ' ) + '\
       \
-      vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);\
+      vec3 refractedLight = refract(-normalize(light+light2), vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);\
       \
       /* compute a blob shadow and make sure we only draw a shadow if the player is blocking the light */\
       vec3 dir = (sphereCenter - newPos) / sphereRadius;\
@@ -372,6 +385,7 @@ Renderer.prototype.updateCaustics = function(water) {
     water.textureA.bind(0);
     this_.causticsShader.uniforms({
       light: this_.lightDir,
+      light2: this_.lightDir2,
       water: 0,
       sphereCenter: this_.sphereCenter,
       sphereRadius: this_.sphereRadius
@@ -390,6 +404,7 @@ Renderer.prototype.renderWater = function(water, sky) {
     gl.cullFace(i ? gl.BACK : gl.FRONT);
     this.waterShaders[i].uniforms({
       light: this.lightDir,
+      light2 : this.lightDir2,
       water: 0,
       tiles: 1,
       sky: 2,
@@ -413,6 +428,7 @@ Renderer.prototype.renderWaterMask = function(water, sky) {
     gl.cullFace(i ? gl.BACK : gl.FRONT);
     this.waterShadersMask[i].uniforms({
       light: this.lightDir,
+      light2: this.lightDir2,
       water: 0,
       tiles: 1,
       sky: 2,
@@ -430,6 +446,7 @@ Renderer.prototype.renderSphere = function() {
   this.causticTex.bind(1);
   this.sphereShader.uniforms({
     light: this.lightDir,
+    light2: this.lightDir2,
     water: 0,
     causticTex: 1,
     sphereCenter: this.sphereCenter,
@@ -444,6 +461,7 @@ Renderer.prototype.renderCube = function() {
   this.causticTex.bind(2);
   this.cubeShader.uniforms({
     light: this.lightDir,
+    light2: this.lightDir2,
     water: 0,
     tiles: 1,
     causticTex: 2,
