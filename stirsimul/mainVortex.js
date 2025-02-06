@@ -1,11 +1,3 @@
-/*
- * WebGL Water
- * http://madebyevan.com/webgl-water/
- *
- * Copyright 2011 Evan Wallace
- * Released under the MIT license
- */
-
 function text2html(text) {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
 }
@@ -74,7 +66,7 @@ window.onload = function () {
   cubemap = new Cubemap({
     xneg: document.getElementById('xneg'),
     xpos: document.getElementById('xpos'),
-    yneg: document.getElementById('ypos'),
+    yneg: document.getElementById('yneg'),
     ypos: document.getElementById('ypos'),
     zneg: document.getElementById('zneg'),
     zpos: document.getElementById('zpos')
@@ -101,7 +93,7 @@ window.onload = function () {
   var prevTime = Date.now();
   var startTime = Date.now();
   var Duration = 60000; 
-  var dropInterval = 1000;
+  var dropInterval = 10000;
   var lastDropTime = startTime;
   var lastCaptureTime = startTime;
   var captureInterval = 62.5; // 16 frames per second = 1000/16 = 62.5 ms per frame
@@ -114,11 +106,16 @@ window.onload = function () {
         update((nextTime - prevTime) / 1000);
         drawLeft();
         drawRight();
-        if (timeGap < Duration && nextTime - lastDropTime >= dropInterval) {
-            water.addDrop(Math.random() * 2 - 1, Math.random() * 2 - 1, 0.04, 0.1);
-            lastDropTime = nextTime;
-        }
         if (nextTime - lastCaptureTime >= captureInterval && captureCount === 0) {
+          var x = Math.random() * 0.3 + 0.2;
+          var y = Math.random() * 0.3 + 0.2;
+          var density = Math.round(Math.random() * 7 + 15);
+          var curvature = Math.random() * 5 + 25  ;
+          var contourDepth = Math.random() * 0.005 +  0.005;
+          var vortexDepth = Math.random() * 2 + 0.5 ;
+          var thinning = Math.random() * 0.2 + 0.7;
+          water.addVortex(x, y, density, curvature, contourDepth, vortexDepth, thinning);
+          lastDropTime = nextTime;
           lastCaptureTime = nextTime;
           captureCanvas(document.querySelector('canvas')); // Store data URL in captures array
         }
@@ -268,14 +265,6 @@ window.onload = function () {
         velocity.y = Math.abs(velocity.y) * 0.7;
       }
     }
-
-    water.moveSphere(oldCenter, center, radius);
-    oldCenter = center;
-    
-    // Update the water simulation and graphics
-    water.stepSimulation();
-    water.stepSimulation();
-    
     water.updateNormals();
     renderer.updateCaustics(water);
   }

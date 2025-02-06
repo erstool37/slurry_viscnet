@@ -124,6 +124,29 @@ function Water() {
       gl_FragColor = info;\
     }\
   ');
+
+  this.vortexShader = new GL.Shader(vertexShader, '\
+    const float PI = 3.141592653589793;\
+    uniform sampler2D texture;\
+    uniform vec2 center;\
+    uniform float density;\
+    uniform float curvature;\
+    uniform float contourDepth;\
+    uniform float vortexDepth;\
+    uniform float thinning;\
+    varying vec2 coord;\
+    void main() {\
+      vec4 info = texture2D(texture, coord);\
+      vec2 d = coord - center;\
+      float R = max(length(d), 0.000001);\
+      float u =  log(R) / log(3.0);\
+      float v = atan(d.y, d.x);\
+      float height = -vortexDepth / u + contourDepth * (1.0 + thinning * u) * sin(curvature * u + density * v);\
+      height = height / (1.0 + abs(height)) - 1.0;\
+      info.r = height;\
+      gl_FragColor = info;\
+    }\
+  ');
 }
 
 //add water drop to the water
@@ -135,6 +158,23 @@ Water.prototype.addDrop = function(x, y, radius, strength) {
       center: [x, y],
       radius: radius,
       strength: strength
+    }).draw(this_.plane);
+  });
+  this.textureB.swapWith(this.textureA);
+};
+
+//add vortex to the water
+Water.prototype.addVortex = function(x, y, density, curvature, contourDepth, vortexDepth, thinning) {
+  var this_ = this;
+  this.textureB.drawTo(function() {
+    this_.textureA.bind(); 
+    this_.vortexShader.uniforms({
+      center: [x, y],
+      density: density,
+      curvature: curvature,
+      contourDepth: contourDepth,
+      vortexDepth: vortexDepth, 
+      thinning: thinning
     }).draw(this_.plane);
   });
   this.textureB.swapWith(this.textureA);

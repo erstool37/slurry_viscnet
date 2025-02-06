@@ -1,9 +1,7 @@
-//Capture Functions
-
 const maxImages = 960; // 60 seconds * 16 frames per second
 const canvas = document.querySelector('canvas') //canvas is not defined in html but generated in light.js, so linkages are made here
-const fixedWidth = 1920;
-const fixedHeight = 960;
+const fixedWidth = 2048;
+const fixedHeight = 1024;
 var captureCount = 0;
 const captures = [];
 
@@ -30,8 +28,8 @@ window.captureCanvas = function(canvas){
   
       //right offscreencanvas with greyscale filter
       const rightCanvas = document.createElement('canvas');
-      rightCanvas.width = offscreenCanvas.width / 2;
-      rightCanvas.height = offscreenCanvas.height;
+      rightCanvas.width = fixedWidth / 2;
+      rightCanvas.height = fixedHeight;
       const rightCtx = rightCanvas.getContext('2d');
       rightCtx.drawImage(offscreenCanvas, offscreenCanvas.width/2, 0, offscreenCanvas.width/2, offscreenCanvas.height, 0, 0, rightCanvas.width, rightCanvas.height);
   
@@ -46,7 +44,7 @@ window.captureCanvas = function(canvas){
       if(captures.length >= maxImages){
         alert("Maximum number of captures reached, downloading now");
         bulkDownloadCaptures();
-        captureCount +=1;
+        captureCount += 1;
       }
     }
   }
