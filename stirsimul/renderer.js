@@ -9,7 +9,7 @@
 //water color
 var helperFunctions = '\
   const float IOR_AIR = 1.0;\
-  const float IOR_WATER = 1.4;\
+  const float IOR_WATER = 1.3;\
   const vec3 abovewaterColor = vec3(0.14, 0.5, 0.85);\
   const vec3 abovewaterColorMask =vec3(0.4, 0.4, 0.4);\
   const vec3 underwaterColor = vec3(0.14, 0.5, 0.85);\
@@ -97,7 +97,7 @@ var helperFunctions = '\
     } else {\
       /* shadow for the rim of the pool */\
       vec2 t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));\
-      diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));\
+      diffuse *= 1.0 / (1.0 + exp(-400.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));\
       \
       scale += diffuse * 0.5;\
     }\
@@ -165,18 +165,18 @@ function Renderer() {
         \
         /* make water look more "peaked" */\
         for (int i = 0; i < 5; i++) {\
-          coord += info.ba * 0.005;\
+          coord += info.ba * 0.000001;\
           info = texture2D(water, coord);\
         }\
         \
-        vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);\
+        vec3 normal = vec3(info.b, sqrt(max(0.0, 1.0 - dot(info.ba, info.ba))), info.a);\
         vec3 incomingRay = normalize(position - eye);\
         \
         ' + (i ? /* underwater */ '\
           normal = -normal;\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_WATER / IOR_AIR);\
-          float fresnel = mix(0.5, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0))*1.5;\
+          float fresnel = mix(0.3, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, underwaterColor);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, vec3(1.0)) * vec3(0.5, 0.8, 0.9);\
@@ -185,9 +185,9 @@ function Renderer() {
         ' : /* above water */ '\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);\
-          float fresnel = mix(0.5, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
+          float fresnel = mix(0.3, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
           \
-          vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColor) * 2.5;\
+          vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColor);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColor);\
           \
           gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);\
@@ -223,8 +223,8 @@ function Renderer() {
           if (hit.y < 2.0 / 12.0) {\
             color = getWallColor(hit);\
           } else {\
-            vec3 lightEffect1 = vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
-            vec3 lightEffect2 = vec3(pow(max(0.0, dot(light2, ray)), 5000.0)) * vec3(5.0, 3.0, 2.0);\
+            vec3 lightEffect1 = vec3(pow(max(0.001, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
+            vec3 lightEffect2 = vec3(pow(max(0.001, dot(light2, ray)), 5000.0)) * vec3(5.0, 3.0, 2.0);\
             \
             color = textureCube(sky, ray).rgb;\
             color += lightEffect1 + lightEffect2;\
@@ -251,7 +251,7 @@ function Renderer() {
           normal = -normal;\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_WATER / IOR_AIR);\
-          float fresnel = mix(0.8, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0))*1.5;\
+          float fresnel = mix(0.8, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, underwaterColorMask);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, vec3(1.0)) * vec3(0.5, 0.8, 0.9);\
@@ -265,12 +265,12 @@ function Renderer() {
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColorMask);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColorMask);\
           \
-          float threshold = 0.7;\
+          float threshold = 0.6;\
           float binaryFresnel = fresnel > threshold ? 1.0 : 0.0;\
           vec3 finalColor = mix(refractedColor, reflectedColor, binaryFresnel);\
           \
           float brightness = dot(finalColor, vec3(0.299, 0.587, 0.114));\
-          finalColor = brightness > 0.3 ? vec3(1.0) : vec3(0.0);\
+          finalColor = brightness > 0.2 ? vec3(1.0) : vec3(0.0);\
           gl_FragColor = vec4(finalColor, 1.0);\
         ') + '\
       }\
