@@ -149,8 +149,8 @@ function Renderer() {
           if (hit.y < 2.0 / 12.0) {\
             color = getWallColor(hit);\
           } else {\
-            vec3 lightEffect1 = vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
-            vec3 lightEffect2 = vec3(pow(max(0.0, dot(light2, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
+            vec3 lightEffect1 = vec3(pow(max(0.0, dot(light, ray)), 15000.0)) * vec3(10.0, 8.0, 6.0);\
+            vec3 lightEffect2 = vec3(pow(max(0.0, dot(light2, ray)), 15000.0)) * vec3(10.0, 8.0, 6.0);\
             color = textureCube(sky, ray).rgb;\
             color += lightEffect1 + lightEffect2;\
           }\
@@ -189,7 +189,6 @@ function Renderer() {
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColor);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColor);\
-          \
           gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);\
         ') + '\
       }\
@@ -265,12 +264,12 @@ function Renderer() {
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColorMask);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColorMask);\
           \
-          float threshold = 0.6;\
+          float threshold = 0.2;\
           float binaryFresnel = fresnel > threshold ? 1.0 : 0.0;\
           vec3 finalColor = mix(refractedColor, reflectedColor, binaryFresnel);\
           \
           float brightness = dot(finalColor, vec3(0.299, 0.587, 0.114));\
-          finalColor = brightness > 0.2 ? vec3(1.0) : vec3(0.0);\
+          finalColor = brightness > 0.23 ? vec3(1.0) : vec3(0.0);\
           gl_FragColor = vec4(finalColor, 1.0);\
         ') + '\
       }\
@@ -365,10 +364,18 @@ function Renderer() {
       vec3 area = cross(dir, refractedLight);\
       float shadow = dot(area, area);\
       float dist = dot(dir, -refractedLight);\
-      shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);\
-      shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);\
-      shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));\
-      gl_FragColor.g = shadow;\
+      \
+      float edgeThreshold = 0.02;\
+      if (abs(newPos.x) > 1.0 - edgeThreshold) {\
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);\
+      } else if (abs(newPos.z) > 1.0 - edgeThreshold) {\
+           gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);\
+        } else {\
+            shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);\
+            shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);\
+            shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));\
+            gl_FragColor.g = shadow;\
+        }\
       \
       /* shadow for the rim of the pool */\
       vec2 t = intersectCube(newPos, -refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));\
