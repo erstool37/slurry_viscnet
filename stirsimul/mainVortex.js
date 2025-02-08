@@ -109,12 +109,14 @@ window.onload = function () {
         if (nextTime - lastCaptureTime >= captureInterval && captureCount === 0) {
           var x = Math.random() * 0.3 + 0.2;
           var y = Math.random() * 0.3 + 0.2;
+          var x2 = Math.random() * 0.5 + 0.2;
+          var y2 = Math.random() * 0.5 + 0.2;
           var density = Math.round(Math.random() * 7 + 15);
           var curvature = Math.random() * 5 + 25  ;
-          var contourDepth = Math.random() * 0.005 +  0.005;
-          var vortexDepth = Math.random() * 2 + 0.5 ;
+          var contourDepth = Math.random() * 0.05 +  0.05;
+          var vortexDepth = Math.random() * 3 + 2 ;
           var thinning = Math.random() * 0.2 + 0.7;
-          water.addVortex(x, y, density, curvature, contourDepth, vortexDepth, thinning);
+          water.addVortexTwo(x, y, x2, y2, density, curvature, contourDepth, vortexDepth, thinning);
           lastDropTime = nextTime;
           lastCaptureTime = nextTime;
           captureCanvas(document.querySelector('canvas')); // Store data URL in captures array
@@ -126,6 +128,7 @@ window.onload = function () {
     
   requestAnimationFrame(animate); //animating through using 1)update, 2)draw
   window.onresize = onresize; //resizing window adjustments
+
 
   var prevHit;
   var planeNormal;
