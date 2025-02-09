@@ -169,7 +169,6 @@ function Water() {
       float u =  log(R) / log(3.0);\
       float v = atan(d.y, d.x);\
       float height = -vortexDepth / u + contourDepth * (1.0 + thinning * u) * sin(curvature * u + density * v);\
-      height = height / (1.0 + abs(height)) - 1.0;\
       info.r = height;\
       gl_FragColor = info;\
     }\
