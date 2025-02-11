@@ -60,7 +60,7 @@ window.onload = function () {
 
   //background color settings
   document.body.appendChild(gl.canvas);
-  gl.clearColor(1, 1, 1, 1);
+  gl.clearColor(0, 0, 0, 1);
   water = new Water();
   renderer = new Renderer();
   cubemap = new Cubemap({
@@ -92,9 +92,6 @@ window.onload = function () {
 
   var prevTime = Date.now();
   var startTime = Date.now();
-  var Duration = 60000; 
-  var dropInterval = 10000;
-  var lastDropTime = startTime;
   var lastCaptureTime = startTime;
   var captureInterval = 62.5; // 16 frames per second = 1000/16 = 62.5 ms per frame
   var captureCount = 0;
@@ -106,17 +103,22 @@ window.onload = function () {
         update((nextTime - prevTime) / 1000);
         drawLeft();
         drawRight();
+
+        // dataset form loop
         if (nextTime - lastCaptureTime >= captureInterval && captureCount === 0) {
-          var x = Math.random() * 0.3 + 0.2;
-          var y = Math.random() * 0.3 + 0.2;
-          var x2 = Math.random() * 0.5 + 0.2;
-          var y2 = Math.random() * 0.5 + 0.2;
-          var density = Math.round(Math.random() * 7 + 15);
-          var curvature = Math.random() * 5 + 25  ;
-          var contourDepth = Math.random() * 0.05 +  0.05;
-          var vortexDepth = Math.random() * 3 + 2 ;
-          var thinning = Math.random() * 0.2 + 0.7;
-          water.addVortexTwo(x, y, x2, y2, density, curvature, contourDepth, vortexDepth, thinning);
+          //camera angle setting
+          angleX = Math.random() * 30 - (90+15);
+          angleY = Math.random() * 30 - 15;
+
+          //vortex printing
+          var x = Math.random() * 0.6 + 0.2;
+          var y = Math.random() * 0.6 + 0.2;
+          var density = Math.round(Math.random() * 10 + 1);
+          var curvature = Math.random() * 3 + 1  ;
+          var contourDepth = Math.random() * 0.4 + 0.2;
+          var vortexDepth = Math.random() * 0.0 + 0.0  ;
+          var thinning = Math.random() * 5 + 6;
+          water.addVortexOne(x, y, density, curvature, contourDepth, vortexDepth, thinning);
           lastDropTime = nextTime;
           lastCaptureTime = nextTime;
           captureCanvas(document.querySelector('canvas')); // Store data URL in captures array

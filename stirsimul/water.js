@@ -140,14 +140,13 @@ function Water() {
       vec4 info = texture2D(texture, coord);\
       vec2 d = coord - center;\
       vec2 d2 = coord - center2;\
-      float R = max(length(d), 0.000001);\
-      float R2 = max(length(d2),0.0000001);\
-      float u =  log(R) / log(3.0);\
-      float u2 = log(R2) / log(3.0);\
+      float R = length(d);\
+      float R2 = length(d2);\
+      float u =  5.0 + log(R) / (0.2*log(3.0));\
+      float u2 = 5.0 + log(R2) / (0.2*log(3.0));\
       float v = atan(d.y, d.x);\
       float v2 = atan(d2.y, d2.x);\
-      float height = -vortexDepth / u + contourDepth * (1.0 + thinning * u) * sin(curvature * u + density * v) -vortexDepth / u2 + contourDepth * (1.0 + thinning * u2) * sin(curvature * u2 + density * v2);\
-      height = height / (1.0 + abs(height)) - 1.0;\
+      float height = - vortexDepth / (1.0 + exp(u+10.0)*exp(u+10.0)) + contourDepth / (50.0 + thinning * exp(u)) * sin(curvature * u + density * v) - vortexDepth / (1.0 + exp(u2+10.0)*exp(u2+10.0)) + contourDepth / (50.0 + thinning * exp(u2)) * sin(curvature * u2 + density * v2);\
       info.r = height;\
       gl_FragColor = info;\
     }\
@@ -165,10 +164,10 @@ function Water() {
     void main() {\
       vec4 info = texture2D(texture, coord);\
       vec2 d = coord - center;\
-      float R = max(length(d), 0.000001);\
-      float u =  log(R) / log(3.0);\
+      float R = length(d);\
+      float u =  5.0 + log(R) / (0.2*log(3.0));\
       float v = atan(d.y, d.x);\
-      float height = -vortexDepth / u + contourDepth * (1.0 + thinning * u) * sin(curvature * u + density * v);\
+      float height = contourDepth / (50.0 + thinning * exp(u)) * sin(curvature * u + density * v);\
       info.r = height;\
       gl_FragColor = info;\
     }\
@@ -201,7 +200,23 @@ Water.prototype.addVortexTwo = function(x, y, x2, y2, density, curvature, contou
       curvature: curvature,
       contourDepth: contourDepth,
       vortexDepth: vortexDepth, 
-      thinning: thinning
+      thinning: thinning,
+    }).draw(this_.plane);
+  });
+  this.textureB.swapWith(this.textureA);
+};
+
+Water.prototype.addVortexOne= function(x, y, density, curvature, contourDepth, vortexDepth, thinning) {
+  var this_ = this;
+  this.textureB.drawTo(function() {
+    this_.textureA.bind(); 
+    this_.vortexShaderOne.uniforms({
+      center: [x, y],
+      density: density,
+      curvature: curvature,
+      contourDepth: contourDepth,
+      vortexDepth: vortexDepth, 
+      thinning: thinning,
     }).draw(this_.plane);
   });
   this.textureB.swapWith(this.textureA);
