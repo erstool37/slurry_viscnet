@@ -1,4 +1,4 @@
-const maxImages = 960; // 60 seconds * 16 frames per second
+const maxImages = 960*10; // 60s * 16 fps * 10 min
 const canvas = document.querySelector('canvas') //canvas is not defined in html but generated in light.js, so linkages are made here
 const fixedWidth = 2048;
 const fixedHeight = 1024;

@@ -10,7 +10,6 @@
 var helperFunctions = '\
   const float IOR_AIR = 1.0;\
   const float IOR_WATER = 1.3;\
-  const vec3 abovewaterColor = vec3(0.14, 0.5, 0.85);\
   const vec3 abovewaterColorMask =vec3(0.4, 0.4, 0.4);\
   const vec3 underwaterColor = vec3(0.14, 0.5, 0.85);\
   const vec3 underwaterColorMask = vec3(0.4, 0.4, 0.4);\
@@ -122,6 +121,9 @@ function Renderer() {
   for (var i = 0; i < 2; i++) {
     this.waterShaders[i] = new GL.Shader('\
       uniform sampler2D water;\
+      uniform float rand;\
+      uniform vec3 abovewaterColor;\
+      uniform float fres;\
       varying vec3 position;\
       void main() {\
         vec4 info = texture2D(water, gl_Vertex.xy * 0.5 + 0.5);\
@@ -133,6 +135,9 @@ function Renderer() {
       uniform vec3 eye;\
       varying vec3 position;\
       uniform samplerCube sky;\
+      uniform float rand;\
+      uniform vec3 abovewaterColor;\
+      uniform float fres;\
       \
       /*SURFACERAYCOLORING LOGIC*/\
       vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {\
@@ -185,7 +190,7 @@ function Renderer() {
         ' : /* above water */ '\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);\
-          float fresnel = mix(0.3, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
+          float fresnel = mix(fres, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColor);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColor);\
@@ -304,9 +309,14 @@ function Renderer() {
           \
           vec3 finalColor = vec3(mix(refractedColor, reflectedColor, fresnel));\
           \
-          float threshold = 0.015;\
-          float binaryMask = gradientStrength > threshold ? 1.0 : 0.0;\
-          \
+          float downThre = 0.02;\
+          float topThre = 0.035;\
+          float binaryMask;\
+          if (gradientStrength > downThre && gradientStrength < topThre) {\
+            binaryMask = 1.0;\
+          } else {\
+            binaryMask = 0.0;\
+          }\
           gl_FragColor = vec4(vec3(binaryMask), 1.0);\
         ') + '\
       }\
@@ -432,13 +442,18 @@ Renderer.prototype.updateCaustics = function(water) {
       light2: this_.lightDir2,
       water: 0,
       sphereCenter: this_.sphereCenter,
-      sphereRadius: this_.sphereRadius
+      sphereRadius: this_.sphereRadius,
     }).draw(this_.waterMesh);
   });
 };
 
 Renderer.prototype.renderWater = function(water, sky) {
   var tracer = new GL.Raytracer();
+  var r = 0.1 * Math.random() * 0.3;
+  var g = 0.2 * Math.random() * 0.5;
+  var b = 0.1 + Math.random() * 0.3;
+  var randomColor = new Float32Array([r, g, b]);
+  var fresnel = 0.2+ Math.random() * 0.5;
   water.textureA.bind(0);
   this.tileTexture.bind(1);
   sky.bind(2);
@@ -455,7 +470,9 @@ Renderer.prototype.renderWater = function(water, sky) {
       causticTex: 3,
       eye: tracer.eye,
       sphereCenter: this.sphereCenter,
-      sphereRadius: this.sphereRadius
+      sphereRadius: this.sphereRadius,
+      abovewaterColor: randomColor,
+      fres : fresnel
     }).draw(this.waterMesh);
   }
   gl.disable(gl.CULL_FACE);
@@ -481,7 +498,7 @@ Renderer.prototype.renderWaterMask = function(water, sky) {
       eye: tracer.eye,
       sphereCenter: this.sphereCenter,
       sphereRadius: this.sphereRadius,
-      waterSize: waterSize
+      waterSize: waterSize,
     }).draw(this.waterMesh);
   }
   gl.disable(gl.CULL_FACE);
@@ -496,7 +513,7 @@ Renderer.prototype.renderSphere = function() {
     water: 0,
     causticTex: 1,
     sphereCenter: this.sphereCenter,
-    sphereRadius: this.sphereRadius
+    sphereRadius: this.sphereRadius,
   }).draw(this.sphereMesh);
 };
 
@@ -512,7 +529,7 @@ Renderer.prototype.renderCube = function() {
     tiles: 1,
     causticTex: 2,
     sphereCenter: this.sphereCenter,
-    sphereRadius: this.sphereRadius
+    sphereRadius: this.sphereRadius,
   }).draw(this.cubeMesh);
   gl.disable(gl.CULL_FACE);
 };
