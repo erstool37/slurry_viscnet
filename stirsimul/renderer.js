@@ -181,7 +181,7 @@ function Renderer() {
           normal = -normal;\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_WATER / IOR_AIR);\
-          float fresnel = mix(0.3, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
+          float fresnel = mix(0.2, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, underwaterColor);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, vec3(1.0)) * vec3(0.5, 0.8, 0.9);\
@@ -449,11 +449,11 @@ Renderer.prototype.updateCaustics = function(water) {
 
 Renderer.prototype.renderWater = function(water, sky) {
   var tracer = new GL.Raytracer();
-  var r = 0.1 * Math.random() * 0.3;
-  var g = 0.2 * Math.random() * 0.5;
-  var b = 0.1 + Math.random() * 0.3;
+  var r = 0.8 * Math.random() * 0.1;
+  var g = 0.7 * Math.random() * 0.1;
+  var b = 0.9 + Math.random() * 0.1;
   var randomColor = new Float32Array([r, g, b]);
-  var fresnel = 0.2+ Math.random() * 0.5;
+  var fresnel = 0.3 + Math.random() * 0.5;
   water.textureA.bind(0);
   this.tileTexture.bind(1);
   sky.bind(2);
