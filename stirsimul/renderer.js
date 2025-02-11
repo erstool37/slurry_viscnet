@@ -206,6 +206,7 @@ function Renderer() {
       uniform vec3 eye;\
       varying vec3 position;\
       uniform samplerCube sky;\
+      uniform vec2 waterSize;\
       \
       /*SURFACERAYCOLORING LOGIC*/\
       vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {\
@@ -233,9 +234,45 @@ function Renderer() {
         return color;\
       }\
       \
+      /*Sobel filter application*/\
+      \
+      float sobelFilter(sampler2D texture, vec2 uv, vec2 texelSize) {\
+        mat3 Gx = mat3(\
+            -1,  0,  1,\
+            -2,  0,  2,\
+            -1,  0,  1\
+        );\
+        \
+        mat3 Gy = mat3(\
+            -1, -2, -1,\
+             0,  0,  0,\
+             1,  2,  1\
+        );\
+        \
+        float sample0 = texture2D(texture, uv + texelSize * vec2(-1, -1)).r;\
+        float sample1 = texture2D(texture, uv + texelSize * vec2( 0, -1)).r;\
+        float sample2 = texture2D(texture, uv + texelSize * vec2( 1, -1)).r;\
+        float sample3 = texture2D(texture, uv + texelSize * vec2(-1,  0)).r;\
+        float sample4 = texture2D(texture, uv + texelSize * vec2( 0,  0)).r;\
+        float sample5 = texture2D(texture, uv + texelSize * vec2( 1,  0)).r;\
+        float sample6 = texture2D(texture, uv + texelSize * vec2(-1,  1)).r;\
+        float sample7 = texture2D(texture, uv + texelSize * vec2( 0,  1)).r;\
+        float sample8 = texture2D(texture, uv + texelSize * vec2( 1,  1)).r;\
+        \
+        float gradX = sample0 * Gx[0][0] + sample1 * Gx[0][1] + sample2 * Gx[0][2] +\
+                      sample3 * Gx[1][0] + sample4 * Gx[1][1] + sample5 * Gx[1][2] +\
+                      sample6 * Gx[2][0] + sample7 * Gx[2][1] + sample8 * Gx[2][2];\
+        \
+        float gradY = sample0 * Gy[0][0] + sample1 * Gy[0][1] + sample2 * Gy[0][2] +\
+                      sample3 * Gy[1][0] + sample4 * Gy[1][1] + sample5 * Gy[1][2] +\
+                      sample6 * Gy[2][0] + sample7 * Gy[2][1] + sample8 * Gy[2][2];\
+        \
+        return sqrt(gradX * gradX + gradY * gradY);\
+      }\
       void main() {\
         vec2 coord = position.xz * 0.5 + 0.5;\
         vec4 info = texture2D(water, coord);\
+        vec2 texOffset = 1.0 / waterSize;\
         \
         /* make water look more "peaked" */\
         for (int i = 0; i < 5; i++) {\
@@ -245,6 +282,7 @@ function Renderer() {
         \
         vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);\
         vec3 incomingRay = normalize(position - eye);\
+        float gradientStrength = sobelFilter(water, coord, texOffset);\
         \
         ' + (i ? /* underwater */ '\
           normal = -normal;\
@@ -264,13 +302,12 @@ function Renderer() {
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColorMask);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColorMask);\
           \
-          float threshold = 0.2;\
-          float binaryFresnel = fresnel > threshold ? 1.0 : 0.0;\
-          vec3 finalColor = mix(refractedColor, reflectedColor, binaryFresnel);\
+          vec3 finalColor = vec3(mix(refractedColor, reflectedColor, fresnel));\
           \
-          float brightness = dot(finalColor, vec3(0.299, 0.587, 0.114));\
-          finalColor = brightness > 0.23 ? vec3(1.0) : vec3(0.0);\
-          gl_FragColor = vec4(finalColor, 1.0);\
+          float threshold = 0.015;\
+          float binaryMask = gradientStrength > threshold ? 1.0 : 0.0;\
+          \
+          gl_FragColor = vec4(vec3(binaryMask), 1.0);\
         ') + '\
       }\
     ');
@@ -426,6 +463,7 @@ Renderer.prototype.renderWater = function(water, sky) {
 
 Renderer.prototype.renderWaterMask = function(water, sky) {
   var tracer = new GL.Raytracer();
+  var waterSize = [water.textureA.width, water.textureA.height];
   water.textureA.bind(0);
   this.tileTexture.bind(1);
   sky.bind(2);
@@ -442,7 +480,8 @@ Renderer.prototype.renderWaterMask = function(water, sky) {
       causticTex: 3,
       eye: tracer.eye,
       sphereCenter: this.sphereCenter,
-      sphereRadius: this.sphereRadius
+      sphereRadius: this.sphereRadius,
+      waterSize: waterSize
     }).draw(this.waterMesh);
   }
   gl.disable(gl.CULL_FACE);
