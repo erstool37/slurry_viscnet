@@ -19,7 +19,7 @@ assets
 captures
 weights
 scripts
-mobile_sam/utils
+mobile_sam/utils/
 mobile_sam/__init__.py
 mobile_sam/automatic_mask_generator.py
 mobile_sam/build_sam.py
@@ -32,4 +32,5 @@ mobile_sam/modeling/prompt_encoder.py
 mobile_sam/modeling/tiny_vit.py
 mobile_sam/modeling/tiny_vit_sam.py
 mobile_sam/modeling/transformer.py
+processed_data/
 
