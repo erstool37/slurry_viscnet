@@ -18,9 +18,6 @@ from .prompt_encoder import PromptEncoder
 
 
 class Sam(nn.Module):
-    mask_threshold: float = 0.0
-    image_format: str = "RGB"
-
     def __init__(
         self,
         image_encoder: Union[ImageEncoderViT, TinyViT],
@@ -42,6 +39,7 @@ class Sam(nn.Module):
           pixel_std (list(float)): Std values for normalizing pixels in the input image.
         """
         super().__init__()
+        self.mask_threshold = 0.0
         self.image_encoder = image_encoder
         self.prompt_encoder = prompt_encoder
         self.mask_decoder = mask_decoder
@@ -67,7 +65,7 @@ class Sam(nn.Module):
           batched_input (list(dict)): A list over input images, each a
             dictionary with the following keys. A prompt key can be
             excluded if it is not present.
-              'image': The image as a torch tensor in 3xHxW format,
+              'image': The image as a torch tensor in Bx3xHxW format,
                 already transformed for input to the model.
               'original_size': (tuple(int, int)) The original size of
                 the image before transformation, as (H, W).
