@@ -40,6 +40,7 @@ class Sam(nn.Module):
         """
         super().__init__()
         self.mask_threshold = 0.0
+        self.image_format = "RGB"
         self.image_encoder = image_encoder
         self.prompt_encoder = prompt_encoder
         self.mask_decoder = mask_decoder
