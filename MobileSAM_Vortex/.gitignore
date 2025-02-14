@@ -33,4 +33,7 @@ mobile_sam/modeling/tiny_vit.py
 mobile_sam/modeling/tiny_vit_sam.py
 mobile_sam/modeling/transformer.py
 processed_data/
-
+image.py
+test.jpg
+train.py
+model/
