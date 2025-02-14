@@ -11,14 +11,15 @@ var helperFunctions = '\
   const float IOR_AIR = 1.0;\
   const float IOR_WATER = 1.3;\
   const vec3 abovewaterColorMask =vec3(0.4, 0.4, 0.4);\
-  const vec3 underwaterColor = vec3(0.14, 0.5, 0.85);\
-  const vec3 underwaterColorMask = vec3(0.4, 0.4, 0.4);\
+  const vec3 underwaterColor = vec3(0.0, 0.0, 0.0);\
+  const vec3 underwaterColorMask = vec3(0.0, 0.0, 0.0);\
   const float poolHeight = 1.0;\
   uniform vec3 light;\
   uniform vec3 light2;\
   uniform vec3 sphereCenter;\
   uniform float sphereRadius;\
   uniform sampler2D tiles;\
+  uniform sampler2D tilesMask;\
   uniform sampler2D causticTex;\
   uniform sampler2D water;\
   \
@@ -103,10 +104,52 @@ var helperFunctions = '\
     \
     return wallColor * scale;\
   }\
+  vec3 getWallColorMask(vec3 point) {\
+    float scale = 0.5;\
+    \
+    vec3 wallColor;\
+    vec3 normal;\
+    if (abs(point.x) > 0.999) {\
+      wallColor = texture2D(tilesMask, point.yz * 0.5 + vec2(1.0, 0.5)).rgb;\
+      normal = vec3(-point.x, 0.0, 0.0);\
+    } else if (abs(point.z) > 0.999) {\
+      wallColor = texture2D(tilesMask, point.yx * 0.5 + vec2(1.0, 0.5)).rgb;\
+      normal = vec3(0.0, 0.0, -point.z);\
+    } else {\
+      wallColor = texture2D(tilesMask, point.xz * 0.5 + 0.5).rgb;\
+      normal = vec3(0.0, 1.0, 0.0);\
+    }\
+    \
+    scale /= length(point); /* pool ambient occlusion */\
+    scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0); /* sphere ambient occlusion */\
+    \
+    /* caustics */\
+    vec3 refractedLight = -refract(-normalize(light+light2), vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);\
+    float diffuse = max(0.0, dot(refractedLight, normal));\
+    vec4 info = texture2D(water, point.xz * 0.5 + 0.5);\
+    if (point.y < info.r) {\
+      vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);\
+      scale += diffuse * caustic.r * 2.0 * caustic.g;\
+    } else {\
+      /* shadow for the rim of the pool */\
+      vec2 t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));\
+      diffuse *= 1.0 / (1.0 + exp(-400.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));\
+      \
+      scale += diffuse * 0.5;\
+    }\
+    \
+    return wallColor * scale;\
+  }\
 ';
 
 function Renderer() {
   this.tileTexture = GL.Texture.fromImage(document.getElementById('tiles'), {
+    minFilter: gl.LINEAR_MIPMAP_LINEAR,
+    wrap: gl.REPEAT,
+    format: gl.RGB
+  });
+
+  this.tileTextureMask = GL.Texture.fromImage(document.getElementById('tilesMask'), {
     minFilter: gl.LINEAR_MIPMAP_LINEAR,
     wrap: gl.REPEAT,
     format: gl.RGB
@@ -309,8 +352,8 @@ function Renderer() {
           \
           vec3 finalColor = vec3(mix(refractedColor, reflectedColor, fresnel));\
           \
-          float downThre = 0.02;\
-          float topThre = 0.035;\
+          float downThre = 0.008;\
+          float topThre = 0.030;\
           float binaryMask;\
           if (gradientStrength > downThre && gradientStrength < topThre) {\
             binaryMask = 1.0;\
@@ -353,6 +396,23 @@ function Renderer() {
     varying vec3 position;\
     void main() {\
       gl_FragColor = vec4(getWallColor(position), 1.0);\
+      vec4 info = texture2D(water, position.xz * 0.5 + 0.5);\
+      if (position.y < info.r) {\
+        gl_FragColor.rgb *= underwaterColor;\
+      }\
+    }\
+  ');
+  this.cubeShaderMask = new GL.Shader(helperFunctions + '\
+    varying vec3 position;\
+    void main() {\
+      position = gl_Vertex.xyz;\
+      position.y = ((1.0 - position.y) * (7.0 / 12.0) - 1.0) * poolHeight;\
+      gl_Position = gl_ModelViewProjectionMatrix * vec4(position, 1.0);\
+    }\
+  ', helperFunctions + '\
+    varying vec3 position;\
+    void main() {\
+      gl_FragColor = vec4(getWallColorMask(position), 1.0);\
       vec4 info = texture2D(water, position.xz * 0.5 + 0.5);\
       if (position.y < info.r) {\
         gl_FragColor.rgb *= underwaterColor;\
@@ -449,9 +509,9 @@ Renderer.prototype.updateCaustics = function(water) {
 
 Renderer.prototype.renderWater = function(water, sky) {
   var tracer = new GL.Raytracer();
-  var r = 0.8 * Math.random() * 0.1;
-  var g = 0.7 * Math.random() * 0.1;
-  var b = 0.9 + Math.random() * 0.1;
+  var r = 0.5 + Math.random() * 0.4;
+  var g = 0.5 + Math.random() * 0.3;
+  var b = 0.4 + Math.random() * 0.4;
   var randomColor = new Float32Array([r, g, b]);
   var fresnel = 0.3 + Math.random() * 0.5;
   water.textureA.bind(0);
@@ -523,6 +583,23 @@ Renderer.prototype.renderCube = function() {
   this.tileTexture.bind(1);
   this.causticTex.bind(2);
   this.cubeShader.uniforms({
+    light: this.lightDir,
+    light2: this.lightDir2,
+    water: 0,
+    tiles: 1,
+    causticTex: 2,
+    sphereCenter: this.sphereCenter,
+    sphereRadius: this.sphereRadius,
+  }).draw(this.cubeMesh);
+  gl.disable(gl.CULL_FACE);
+};
+
+Renderer.prototype.renderCubeMask = function() {
+  gl.enable(gl.CULL_FACE);
+  water.textureA.bind(0);
+  this.tileTexture.bind(1);
+  this.causticTex.bind(2);
+  this.cubeShaderMask.uniforms({
     light: this.lightDir,
     light2: this.lightDir2,
     water: 0,
