@@ -18,6 +18,9 @@ from .prompt_encoder import PromptEncoder
 
 
 class Sam(nn.Module):
+    mask_threshold: float = 0.5
+    image_format: str = "RGB"
+
     def __init__(
         self,
         image_encoder: Union[ImageEncoderViT, TinyViT],
@@ -39,8 +42,6 @@ class Sam(nn.Module):
           pixel_std (list(float)): Std values for normalizing pixels in the input image.
         """
         super().__init__()
-        self.mask_threshold = 0.0
-        self.image_format = "RGB"
         self.image_encoder = image_encoder
         self.prompt_encoder = prompt_encoder
         self.mask_decoder = mask_decoder
@@ -66,7 +67,7 @@ class Sam(nn.Module):
           batched_input (list(dict)): A list over input images, each a
             dictionary with the following keys. A prompt key can be
             excluded if it is not present.
-              'image': The image as a torch tensor in Bx3xHxW format,
+              'image': The image as a torch tensor in 3xHxW format,
                 already transformed for input to the model.
               'original_size': (tuple(int, int)) The original size of
                 the image before transformation, as (H, W).
@@ -106,7 +107,7 @@ class Sam(nn.Module):
                 points = None
             sparse_embeddings, dense_embeddings = self.prompt_encoder(
                 points=points,
-                boxes=image_record.get("boxes", None).to("cuda"),
+                boxes=image_record.get("boxes", None),
                 masks=image_record.get("mask_inputs", None),
             )
             low_res_masks, iou_predictions = self.mask_decoder(
@@ -116,16 +117,16 @@ class Sam(nn.Module):
                 dense_prompt_embeddings=dense_embeddings,
                 multimask_output=multimask_output,
             )
-            masks = self.postprocess_masks(
-                low_res_masks,
-                input_size=image_record["image"].shape[-2:],
-                original_size=image_record["original_size"],
-            )
+            # masks = self.postprocess_masks(
+            #     low_res_masks,
+            #     input_size=image_record["image"].shape[-2:],
+            #     original_size=image_record["original_size"],
+            # )
             # masks = masks > self.mask_threshold
 
             outputs.append(
                 {
-                    "masks": masks,
+                    "masks": low_res_masks,
                     "iou_predictions": iou_predictions,
                     "low_res_logits": low_res_masks,
                 }
