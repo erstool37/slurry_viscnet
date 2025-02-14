@@ -28,6 +28,7 @@ var velocity;
 var gravity;
 var radius;
 var paused = false;
+var place;
 
 //After window loading, the following function will be executed
 window.onload = function () {
@@ -98,26 +99,28 @@ window.onload = function () {
 
   function animate() {
       var nextTime = Date.now();
-      var timeGap = nextTime - startTime;
       if (!paused) {
         update((nextTime - prevTime) / 1000);
         drawLeft();
         drawRight();
+        
 
         // dataset form loop
         if (nextTime - lastCaptureTime >= captureInterval && captureCount === 0) {
           //camera angle setting
-          angleX = Math.random() * 30 - (90+15);
-          angleY = Math.random() * 30 - 15;
+          angleX = Math.random() * 60 - (90+15);
+          angleY = Math.random() * 60 - 15;
+          place = Math.random() * 4 + 4;
 
           //vortex printing
           var x = Math.random() * 0.6 + 0.2;
           var y = Math.random() * 0.6 + 0.2;
           var density = Math.round(Math.random() * 10 + 1);
           var curvature = Math.random() * 3 + 1  ;
-          var contourDepth = Math.random() * 0.4 + 0.2;
+          var contourDepth = 0.5;
           var vortexDepth = Math.random() * 0.0 + 0.0  ;
           var thinning = Math.random() * 5 + 6;
+          
           water.addVortexOne(x, y, density, curvature, contourDepth, vortexDepth, thinning);
           lastDropTime = nextTime;
           lastCaptureTime = nextTime;
@@ -285,7 +288,7 @@ function drawLeft() {
 
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.loadIdentity();
-  gl.translate(0, 0, -4); //camera position, ensure fitting within viewport
+  gl.translate(0, 0, -place); //camera position, ensure fitting within viewport
   gl.rotate(-angleX, 1, 0, 0); //camera angleX
   gl.rotate(-angleY, 0, 1, 0); //camera angleY
   gl.translate(0, 0.5, 0); //camera position, fix after rotation
@@ -309,7 +312,7 @@ function drawRight() {
   }
 
   gl.loadIdentity();
-  gl.translate(0, 0, -4);
+  gl.translate(0, 0, -place);
   gl.rotate(-angleX, 1, 0, 0);
   gl.rotate(-angleY, 0, 1, 0);
   gl.translate(0, 0.5, 0);
@@ -317,7 +320,7 @@ function drawRight() {
   gl.enable(gl.DEPTH_TEST);
   renderer.sphereCenter = center;
   renderer.sphereRadius = radius;
-  renderer.renderCube();
+  renderer.renderCubeMask();
   renderer.renderWaterMask(water, cubemap); //Masked rendered Water
   renderer.renderSphere();
   gl.disable(gl.DEPTH_TEST);
