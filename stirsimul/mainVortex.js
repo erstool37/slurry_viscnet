@@ -115,13 +115,21 @@ window.onload = function () {
           //vortex printing
           var x = Math.random() * 0.6 + 0.2;
           var y = Math.random() * 0.6 + 0.2;
+          var x2 = Math.random() * 0.6 + 0.2;
+          var y2 = Math.random() * 0.6 + 0.2;
           var density = Math.round(Math.random() * 10 + 1);
           var curvature = Math.random() * 3 + 1  ;
           var contourDepth = 0.5;
           var vortexDepth = Math.random() * 0.0 + 0.0  ;
           var thinning = Math.random() * 5 + 6;
+          var thinning = Math.random() * 5 + 6;
+          var straightDepth = Math.random()*0.0 +0.1;
+          var tilt = Math.random();
+          var width = Math.random() * 0.0 + 0.005;
+          var ovalshape = Math.random()*0.4 + 0.3;
+          var ovalsize = Math.random()*500.0+ 1000;
           
-          water.addVortexOne(x, y, density, curvature, contourDepth, vortexDepth, thinning);
+          water.addVortexStraight(x, y, x2, y2, density, curvature, contourDepth, vortexDepth, thinning, straightDepth, tilt, width, ovalshape, ovalsize);
           lastDropTime = nextTime;
           lastCaptureTime = nextTime;
           captureCanvas(document.querySelector('canvas')); // Store data URL in captures array
