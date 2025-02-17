@@ -151,6 +151,7 @@ function Water() {
       gl_FragColor = info;\
     }\
   ');
+
   this.vortexShaderOne = new GL.Shader(vertexShader, '\
     const float PI = 3.141592653589793;\
     uniform sampler2D texture;\
@@ -168,6 +169,37 @@ function Water() {
       float u =  5.0 + log(R) / (0.2*log(3.0));\
       float v = atan(d.y, d.x);\
       float height = contourDepth / (50.0 + thinning * exp(u)) * sin(curvature * u + density * v);\
+      info.r = height;\
+      gl_FragColor = info;\
+    }\
+  ');
+
+  this.vortexStraightShader = new GL.Shader(vertexShader, '\
+    const float PI = 3.141592653589793;\
+    uniform sampler2D texture;\
+    uniform vec2 center;\
+    uniform vec2 straightCenter;\
+    uniform float density;\
+    uniform float curvature;\
+    uniform float contourDepth;\
+    uniform float vortexDepth;\
+    uniform float thinning;\
+    uniform float straightDepth;\
+    uniform float tilt;\
+    uniform float width;\
+    uniform float ovalsize;\
+    uniform float ovalshape;\
+    varying vec2 coord;\
+    void main() {\
+      vec4 info = texture2D(texture, coord);\
+      vec2 d = coord - center;\
+      vec2 d2 = coord - straightCenter;\
+      float R = length(d);\
+      float u =  5.0 + log(R) / (0.2*log(3.0));\
+      float v = atan(d.y, d.x);\
+      float vortex1 = contourDepth / (50.0 + thinning * exp(u)) * sin(curvature * u + density * v);\
+      float straightWave = (1.0 / (1.0 + ovalsize*ovalshape*d2.x*d2.x + ovalsize*(1.0-ovalshape)*d2.y*d2.y)) * straightDepth * sin((tilt*coord.x + (1.0-tilt)*coord.y) / width) ;\
+      float height = vortex1 + straightWave;\
       info.r = height;\
       gl_FragColor = info;\
     }\
@@ -201,6 +233,9 @@ Water.prototype.addVortexTwo = function(x, y, x2, y2, density, curvature, contou
       contourDepth: contourDepth,
       vortexDepth: vortexDepth, 
       thinning: thinning,
+      straightDepth: straightDepth,
+      tilt: tilt,
+      width: width,
     }).draw(this_.plane);
   });
   this.textureB.swapWith(this.textureA);
@@ -217,6 +252,28 @@ Water.prototype.addVortexOne= function(x, y, density, curvature, contourDepth, v
       contourDepth: contourDepth,
       vortexDepth: vortexDepth, 
       thinning: thinning,
+    }).draw(this_.plane);
+  });
+  this.textureB.swapWith(this.textureA);
+};
+
+Water.prototype.addVortexStraight= function(x, y, x2, y2, density, curvature, contourDepth, vortexDepth, thinning, straightDepth, tilt, width, ovalshape, ovalsize) {
+  var this_ = this;
+  this.textureB.drawTo(function() {
+    this_.textureA.bind(); 
+    this_.vortexStraightShader.uniforms({
+      center: [x, y],
+      straightCenter: [x2, y2],
+      density: density,
+      curvature: curvature,
+      contourDepth: contourDepth,
+      vortexDepth: vortexDepth, 
+      thinning: thinning,
+      straightDepth: straightDepth,
+      tilt: tilt,
+      width: width,
+      ovalshape: ovalshape,
+      ovalsize: ovalsize
     }).draw(this_.plane);
   });
   this.textureB.swapWith(this.textureA);
@@ -257,3 +314,4 @@ Water.prototype.updateNormals = function() {
   });
   this.textureB.swapWith(this.textureA);
 };
+
