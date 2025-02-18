@@ -197,8 +197,8 @@ function Renderer() {
           if (hit.y < 2.0 / 12.0) {\
             color = getWallColor(hit);\
           } else {\
-            vec3 lightEffect1 = vec3(pow(max(0.0, dot(light, ray)), 15000.0)) * vec3(10.0, 8.0, 6.0);\
-            vec3 lightEffect2 = vec3(pow(max(0.0, dot(light2, ray)), 15000.0)) * vec3(10.0, 8.0, 6.0);\
+            vec3 lightEffect1 = vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(15.0, 12.0, 9.0);\
+            vec3 lightEffect2 = vec3(pow(max(0.0, dot(light2, ray)), 5000.0)) * vec3(12.0, 9.0, 8.0);\
             color = textureCube(sky, ray).rgb;\
             color += lightEffect1 + lightEffect2;\
           }\
@@ -224,7 +224,7 @@ function Renderer() {
           normal = -normal;\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_WATER / IOR_AIR);\
-          float fresnel = mix(0.2, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
+          float fresnel = mix(0.8, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, underwaterColor);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, vec3(1.0)) * vec3(0.5, 0.8, 0.9);\
@@ -233,7 +233,7 @@ function Renderer() {
         ' : /* above water */ '\
           vec3 reflectedRay = reflect(incomingRay, normal);\
           vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);\
-          float fresnel = mix(fres, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));\
+          float fresnel = mix(0.8, 1.0, pow(1.0 - dot(normal, -incomingRay), 2.0));\
           \
           vec3 reflectedColor = getSurfaceRayColor(position, reflectedRay, abovewaterColor);\
           vec3 refractedColor = getSurfaceRayColor(position, refractedRay, abovewaterColor);\
@@ -278,7 +278,7 @@ function Renderer() {
             color += lightEffect1 + lightEffect2;\
           }\
         }\
-        if (ray.y < 0.0) color *= waterColor;\
+        if (ray.y < 0.0) color *= mix(waterColor, vec3(1.0), 0.2);\
         return color;\
       }\
       \
@@ -352,8 +352,8 @@ function Renderer() {
           \
           vec3 finalColor = vec3(mix(refractedColor, reflectedColor, fresnel));\
           \
-          float downThre = 0.008;\
-          float topThre = 0.030;\
+          float downThre = 0.015;\
+          float topThre = 0.020;\
           float binaryMask;\
           if (gradientStrength > downThre && gradientStrength < topThre) {\
             binaryMask = 1.0;\

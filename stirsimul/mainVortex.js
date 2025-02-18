@@ -95,7 +95,6 @@ window.onload = function () {
   var startTime = Date.now();
   var lastCaptureTime = startTime;
   var captureInterval = 62.5; // 16 frames per second = 1000/16 = 62.5 ms per frame
-  var captureCount = 0;
 
   function animate() {
       var nextTime = Date.now();
@@ -103,14 +102,12 @@ window.onload = function () {
         update((nextTime - prevTime) / 1000);
         drawLeft();
         drawRight();
-        
-
         // dataset form loop
-        if (nextTime - lastCaptureTime >= captureInterval && captureCount === 0) {
+        if (nextTime - lastCaptureTime >= captureInterval) {
           //camera angle setting
-          angleX = Math.random() * 60 - (90+15);
-          angleY = Math.random() * 60 - 15;
-          place = Math.random() * 4 + 4;
+          angleX = Math.random() * 50 - (90+15);
+          angleY = Math.random() * 50 - 15;
+          place = Math.random() * 2 + 4;
 
           //vortex printing
           var x = Math.random() * 0.6 + 0.2;
