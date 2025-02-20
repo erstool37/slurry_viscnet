@@ -37,3 +37,4 @@ image.py
 test.jpg
 train.py
 model/
+wandb/
