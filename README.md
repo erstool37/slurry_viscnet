@@ -1,1 +1,1 @@
-# slurry_viscnet
+# Slurry Viscnet
