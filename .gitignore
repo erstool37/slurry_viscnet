@@ -1,1 +1,6 @@
 .DS_Store
+wandb
+test_seg.jpg
+dataset
+dataSynCFD
+dataSynWebGL
