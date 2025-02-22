@@ -6,16 +6,18 @@ import cv2
 from patchify import patchify
 from preprocess.mobile_sam.utils import transforms
 
-class PreprocessorWebGL:
-    def __init__(self, radius_erosion=1, iter_erosion=1, radius_dilation=3, iter_dilation=2):
+class PreprocessorSeg:
+    '''GT mask erosion and dilation, patch extraction, and bounding box extraction for segmentation tasks.'''
+    def __init__(self, data_root, image_subdir, mask_subdir, save_root, image_save_subdir, mask_save_subdir, box_save_subdir,
+                 radius_erosion=1, iter_erosion=1, radius_dilation=3, iter_dilation=2):
         # Directories
-        self.data_root = "dataset/WebGLfluid/original"
-        self.image_subdir = "raw"
-        self.mask_subdir = "masked"
-        self.save_root = "dataset/WebGLfluid/processed_data"
-        self.image_save_subdir = "images"
-        self.mask_save_subdir = "masks"
-        self.box_save_subdir = "boxes"
+        self.data_root = data_root
+        self.image_subdir = image_subdir
+        self.mask_subdir = mask_subdir
+        self.save_root = save_root
+        self.image_save_subdir = image_save_subdir
+        self.mask_save_subdir = mask_save_subdir
+        self.box_save_subdir = box_save_subdir
 
         # Parameters
         self.patch_size = 256
