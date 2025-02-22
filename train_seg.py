@@ -61,10 +61,10 @@ MASK_SAVE_SUBDIR = "masks"
 BOX_SAVE_SUBDIR = "boxes"
 
 # Preprocess images
-# preprocessorWebGL = PreprocessorWebGL(data_root=DATA_ROOT, image_subdir=IMAGE_SUBDIR, mask_subdir=MASK_SUBDIR, 
+# preprocessorSeg = PreprocessorSeg(data_root=DATA_ROOT, image_subdir=IMAGE_SUBDIR, mask_subdir=MASK_SUBDIR, 
 #                                       save_root=SAVE_ROOT, image_save_subdir=IMAGE_SAVE_SUBDIR, mask_save_subdir=MASK_SAVE_SUBDIR, box_save_subdir=BOX_SAVE_SUBDIR,
 #                                       radius_erosion=1, iter_erosion=1, radius_dilation=3, iter_dilation=2)
-# preprocessorWebGL.process_images()
+# preprocessorSeg.process_images()
 
 # Load images and pile in dataset
 model_type = "vit_t"
@@ -146,7 +146,7 @@ for name, param in mobile_sam.named_parameters():
     elif name.startswith("prompt_encoder"):
         param.requires_grad = False  # Freeze the prompt encoder
 
-# Initialize the optimizer and loss functio
+# Initialize the optimizer and loss function
 optimizer = Adam(mobile_sam.mask_decoder.parameters(), lr=LR_RATE, weight_decay=0)
 class DiceBCELoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
@@ -204,15 +204,15 @@ for epoch in range(num_epochs):
     val_losses = []
     with torch.no_grad():
         print(f"Epoch {epoch+1}/{num_epochs} - Validation")
-        for batch in val_dl:
-            images, masks = batch
-            images = images.to(device)
-            masks = (masks / 255).round().float().to(device)
-            batched_input = [{"image": img, "original_size": (256, 256)} for img in images]  
-            outputs = mobile_sam(batched_input=batched_input, multimask_output=False)
-            predicted_masks = torch.stack([output["masks"].squeeze(1).float() for output in outputs])
-            val_loss = seg_loss(predicted_masks, masks)
-            val_losses.append(val_loss.item())
+    for batch in val_dl:
+        images, masks = batch
+        images = images.to(device)
+        masks = (masks / 255).round().float().to(device)
+        batched_input = [{"image": img, "original_size": (256, 256)} for img in images]  
+        outputs = mobile_sam(batched_input=batched_input, multimask_output=False)
+        predicted_masks = torch.stack([output["masks"].squeeze(1).float() for output in outputs])
+        val_loss = seg_loss(predicted_masks, masks)
+        val_losses.append(val_loss.item())
     mean_val_loss = mean(val_losses)
     wandb.log({"val_loss": mean_val_loss})
 
