@@ -35,11 +35,11 @@ class videoToMask():
     Input: (1024x1024) RGB videos
     Output: (1024x1024) greyscale masked videos
     '''
-    def __init__(self, data_root, video_subdir, save_root, mask_save_subdir, frame_num, checkpoint):
+    def __init__(self, data_root, video_subdir, save_root, frame_num, checkpoint):
         self.data_root = data_root
         self.video_subdir = video_subdir
         self.save_root = save_root
-        self.mask_save_subdir =  mask_save_subdir
+
         self.frame_num = frame_num
         self.checkpoint = checkpoint
         self.vortex_model = sam_model_registry["vit_t"](checkpoint=self.checkpoint)
@@ -47,16 +47,16 @@ class videoToMask():
 
     def mask_videos(self):
         video_paths = glob.glob(osp.join(self.data_root, self.video_subdir, "*.mp4"))
-        mask_paths = osp.join(self.save_root, self.mask_save_subdir)
+        mask_paths = self.save_root
         self.vortex_model.eval()
         self.vortex_model.cuda()
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # MP4 format
         video_num = 1
         
         for video_path in video_paths: # 4sec for video_writer,50ms/frame for masking
-            frames, _, _, _ = self.videoToImage(video_path)
+            frames, _, _, _ = self.__videoToImage__(video_path)
             video_writer = cv2.VideoWriter(osp.join(mask_paths, f"{video_num:05d}.mp4"), fourcc, self.frame_num, (256, 256), isColor=False)
-            masks = self.mask(frames)
+            masks = self.__imageToMask__(frames)
             count=0
             for mask in masks:
                 video_writer.write(mask)
@@ -65,7 +65,7 @@ class videoToMask():
             video_num += 1
             video_writer.release()
     
-    def videoToImage(self, video_path):
+    def __videoToImage__(self, video_path):
         "capture frames and convert to image"
         cap = cv2.VideoCapture(video_path)
         fps = int(cap.get(cv2.CAP_PROP_FPS)) 
@@ -91,7 +91,7 @@ class videoToMask():
 
         return frames, frame_width, frame_height, fps
 
-    def mask(self, frames):
+    def __imageToMask__(self, frames):
         '''MobileSAM Masking applied'''
         masks =[]
         for frame in frames:
