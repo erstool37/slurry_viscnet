@@ -161,7 +161,9 @@ class SamPredictor:
             return_logits=return_logits,
         )
 
-        masks_np = masks[0].detach().cpu().numpy()
+        masks_np = torch.sigmoid(masks[0].detach())*255
+        masks_np = masks_np.permute(1, 2, 0)
+        masks_np = masks_np.cpu().numpy().astype(np.uint8)
         iou_predictions_np = iou_predictions[0].detach().cpu().numpy()
         low_res_masks_np = low_res_masks[0].detach().cpu().numpy()
         return masks_np, iou_predictions_np, low_res_masks_np
@@ -236,12 +238,11 @@ class SamPredictor:
         )
 
         # Upscale the masks to the original image resolution
-        masks = self.model.postprocess_masks(low_res_masks, self.input_size, self.original_size)
-
+        # masks = self.model.postprocess_masks(low_res_masks, self.input_size, self.original_size)
         if not return_logits:
             masks = masks > self.model.mask_threshold
 
-        return masks, iou_predictions, low_res_masks
+        return low_res_masks, iou_predictions, low_res_masks
 
     def get_image_embedding(self) -> torch.Tensor:
         """

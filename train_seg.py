@@ -19,14 +19,14 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch import nn
 from torch.nn import functional as F
 
-from preprocess.PreprocessorWebGL import PreprocessorWebGL
+from preprocess.PreprocessorSeg import PreprocessorSeg
 from preprocess.mobile_sam import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 
 # Test PyTorch and CUDA
 print("PyTorch version:", torch.__version__)  # Should show CUDA version
-print("CUDA version in PyTorch:", torch.version.cuda)  # Should match installed CUDA (e.g., 12.1)
-print("CUDA available:", torch.cuda.is_available())  # Should return True
-print("Number of GPUs:", torch.cuda.device_count())  # Should be > 0
+print("CUDA version in PyTorch:", torch.version.cuda)  # Should match installed CUDA
+print("CUDA available:", torch.cuda.is_available()) 
+print("Number of GPUs:", torch.cuda.device_count())  
 print("GPU Name:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "No GPU detected")
 
 # Model definition
@@ -34,8 +34,8 @@ BATCH_SIZE = 16
 NUM_WORKERS = 0
 NUM_EPOCHS = 40
 LR_RATE = 5e-4
-CHECKPOINT = "preprocess/model_seg/Vortex0217_01.pth" # freshly trained model name
-BASE_CHECKPOINT = "preprocess/model_seg/Vortex0217_01.pth" # pre-trained model name
+CHECKPOINT = "preprocess/model_seg/Vortex0222_01.pth" # freshly trained model name
+BASE_CHECKPOINT = "preprocess/model_seg/Vortex0219_01.pth" # pre-trained model name
 
 CONFIG= {}
 
@@ -50,8 +50,20 @@ CONFIG["checkpoint"] = CHECKPOINT
 
 wandb.init(project="contour segmentation", reinit=True, resume="never", config= CONFIG)
 
+# Repository path
+DATA_ROOT = "dataset/WebGLfluid/original"
+IMAGE_SUBDIR = "raw"
+MASK_SUBDIR = "masked"
+
+SAVE_ROOT = "dataset/WebGLfluid/processed_data"
+IMAGE_SAVE_SUBDIR = "images"
+MASK_SAVE_SUBDIR = "masks"
+BOX_SAVE_SUBDIR = "boxes"
+
 # Preprocess images
-# preprocessorWebGL = PreprocessorWebGL(radius_erosion=1, iter_erosion=1, radius_dilation=3, iter_dilation=2)
+# preprocessorWebGL = PreprocessorWebGL(data_root=DATA_ROOT, image_subdir=IMAGE_SUBDIR, mask_subdir=MASK_SUBDIR, 
+#                                       save_root=SAVE_ROOT, image_save_subdir=IMAGE_SAVE_SUBDIR, mask_save_subdir=MASK_SAVE_SUBDIR, box_save_subdir=BOX_SAVE_SUBDIR,
+#                                       radius_erosion=1, iter_erosion=1, radius_dilation=3, iter_dilation=2)
 # preprocessorWebGL.process_images()
 
 # Load images and pile in dataset
@@ -134,7 +146,7 @@ for name, param in mobile_sam.named_parameters():
     elif name.startswith("prompt_encoder"):
         param.requires_grad = False  # Freeze the prompt encoder
 
-# Initialize the optimizer
+# Initialize the optimizer and loss functio
 optimizer = Adam(mobile_sam.mask_decoder.parameters(), lr=LR_RATE, weight_decay=0)
 class DiceBCELoss(nn.Module):
     def __init__(self, weight=None, size_average=True):

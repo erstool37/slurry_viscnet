@@ -89,7 +89,7 @@ class Sam(nn.Module):
               'masks': (torch.Tensor) Batched binary mask predictions,
                 with shape BxCxHxW, where B is the number of input prompts,
                 C is determined by multimask_output, and (H, W) is the
-                original size of the image.
+                original size of the image. Additinal Sigmoid and standard RGB settings are applied.(0-255)
               'iou_predictions': (torch.Tensor) The model's predictions
                 of mask quality, in shape BxC.
               'low_res_logits': (torch.Tensor) Low resolution logits with
@@ -162,6 +162,7 @@ class Sam(nn.Module):
         )
         masks = masks[..., : input_size[0], : input_size[1]]
         masks = F.interpolate(masks, original_size, mode="bilinear", align_corners=False)
+        
         return masks
 
     def preprocess(self, x: torch.Tensor) -> torch.Tensor:
