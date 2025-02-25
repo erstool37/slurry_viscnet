@@ -19,6 +19,7 @@ mobile_sam/__init__.py
 mobile_sam/automatic_mask_generator.py
 mobile_sam/build_sam.py
 
-model_lstm/
+model_reg/
 model_seg/
 wandb/
+

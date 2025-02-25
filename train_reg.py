@@ -12,62 +12,49 @@ from sklearn.model_selection import train_test_split
 import os.path as osp
 import glob
 from statistics import mean
+import yaml
 
-# Model Definition
-BATCH_SIZE = 2
-NUM_WORKERS = 0
-NUM_EPOCHS = 40
-REAL_NUM_EPOCHS = 40 # real world data fine tuning epochs
-LR_RATE = 5e-4
-MASK_CHECKPOINT = "preprocess/model_seg/Vortex0219_01.pth" # masking model
-CHECKPOINT = "preprocess/model_reg/ViscSyn0222_01.pth" # freshly trained model 
-REAL_CHECKPOINT = "preprocess/model_reg/ViscReal0222_01.pth" # freshly fine tuned model with real world data
+# Load Config
+with open("config_reg.yaml", "r") as file:
+    config = yaml.safe_load(file)
 
-CNN = "resnet18"
-LSTM_SIZE = 128
-LSTM_LAYERS = 2
+BATCH_SIZE = config["settings"]["batch_size"]
+NUM_WORKERS = config["settings"]["num_workers"]
+NUM_EPOCHS = config["settings"]["num_epochs"]
+REAL_NUM_EPOCHS = config["settings"]["real_num_epochs"]
+LR_RATE = config["settings"]["lr_rate"]
+MASK_CHECKPOINT = config["settings"]["mask_checkpoint"]
+CHECKPOINT = config["settings"]["checkpoint"] 
+REAL_CHECKPOINT = config["settings"]["real_checkpoint"]
+CNN = config["settings"]["cnn"]
+LSTM_SIZE = config["settings"][{"lstm_size"}]
+LSTM_LAYERS = config["settings"]["lstm_layers"]
+FRAME_NUM = config["settings"]["frame_num"]
+TIME = config["settings"]["time"]
+OUTPUT_SIZE = config["settings"]["output_size"]
+DATA_ROOT = config["directories"]["data_root"]
+POINT_SUBDIR = config["directories"]["point_subdir"]
+MESH_SUBDIR = config["directories"]["mesh_subdir"]
+VIDEO_SUBDIR = config["directories"]["video_subdir"]
+PARA_SUBDIR = config["directories"]["para_subdir"]
+SAVE_ROOT = config["directories"]["save_root"]
+REAL_ROOT = config["directories"]["real_root"]
+REAL_SAVE_ROOT = config["directories"]["real_save_root"]
 
-CONFIG= {}
-CONFIG["batch_size"] = BATCH_SIZE
-CONFIG["learning_rate"] = LR_RATE
-CONFIG["epochs"] = NUM_EPOCHS
-CONFIG["real_epochs"] = REAL_NUM_EPOCHS
-CONFIG["CNN"] = CNN
-CONFIG["LSTM_SIZE"] = LSTM_SIZE
-CONFIG["LSTM_LAYERS"] = LSTM_LAYERS
-CONFIG["dataset"] = "CFDfluid synthetic data"
-CONFIG["scheduler"] = "CosineAnnealingLR"
-CONFIG["loss"] = "MSELoss"
-CONFIG["checkpoint"] = CHECKPOINT
-
-# wandb.init(project="viscosity estimation", reinit=True, resume="never", config= CONFIG)
-
-# Repository path
-DATA_ROOT = "dataset/CFDfluid/original" # use dataset/realfluid/videos to make masked real world dataset, and use videoToMask.mask_videos()
-POINT_SUBDIR = "pointcloud"
-MESH_SUBDIR = "mesh"
-VIDEO_SUBDIR = "videos"
-PARA_SUBDIR = "parameters"
-SAVE_ROOT = "dataset/CFDfluid/processed_data"
-REAL_ROOT = "dataset/realfluid/original"
-REAL_SAVE_ROOT = "dataset/realfluid/processed_data"
-
-FRAME_NUM = 10 # desired number of masked frame per second
-TIME = 10 # desired time duration of the video
-OUTPUT_SIZE = 10 # number of viscosity parameters
+wandb.init(project="viscosity estimation", reinit=True, resume="never", config= config)
 
 # Mesh Formation
-# pointToMesh = pointToMesh(data_root=DATA_ROOT, point_subdir=POINT_SUBDIR, mesh_subdir=MESH_SUBDIR)
-# pointToMesh.pointToMesh()
+pointToMesh = pointToMesh(data_root=DATA_ROOT, point_subdir=POINT_SUBDIR, mesh_subdir=MESH_SUBDIR)
+pointToMesh.pointToMesh()
 # Video Formation
-# meshToVideo = meshToVideo(data_root=DATA_ROOT, mesh_subdir=MESH_SUBDIR, video_subdir=VIDEO_SUBDIR)
-# meshToVideo.meshToVideo()
+meshToVideo = meshToVideo(data_root=DATA_ROOT, mesh_subdir=MESH_SUBDIR, video_subdir=VIDEO_SUBDIR)
+meshToVideo.meshToVideo()
 # Masking train video
-# videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=DATA_ROOT, video_subdir=VIDEO_SUBDIR, save_root=SAVE_ROOT, frame_num=FRAME_NUM)
-# videoToMask.mask_videos()
+videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=DATA_ROOT, video_subdir=VIDEO_SUBDIR, save_root=SAVE_ROOT, frame_num=FRAME_NUM)
+videoToMask.mask_videos()
 # Masking real world video
-# videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=REAL_ROOT, video_subdir=VIDEO_SUBDIR, save_root=REAL_SAVE_ROOT, frame_num=FRAME_NUM)
-# videoToMask.mask_videos()
+videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=REAL_ROOT, video_subdir=VIDEO_SUBDIR, save_root=REAL_SAVE_ROOT, frame_num=FRAME_NUM)
+videoToMask.mask_videos()
 
 class VideoDataset(Dataset):
     def __init__(self, video_paths, para_paths, frame_limit=FRAME_NUM*TIME):
@@ -293,6 +280,7 @@ for epoch in range(num_epochs):
     current_lr = optimizer.get_last_lr[0]
     print(f"Epoch {epoch+1}/{num_epochs} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.5f}")
 wandb.finish() 
+
 
 # Save the model
 torch.save(visc_model.state_dict(), REAL_CHECKPOINT)
