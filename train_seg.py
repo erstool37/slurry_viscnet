@@ -3,6 +3,7 @@ import wandb
 import numpy as np
 from statistics import mean
 import glob
+import yaml
 from preprocess.mobile_sam.utils import transforms
 from torchvision import transforms as T
 from torch.utils.data import Subset
@@ -13,52 +14,32 @@ from collections import namedtuple
 from PIL import Image
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch import nn
 from torch.nn import functional as F
-
 from preprocess.PreprocessorSeg import PreprocessorSeg
 from preprocess.mobile_sam import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 
-# Test PyTorch and CUDA
-print("PyTorch version:", torch.__version__)  # Should show CUDA version
-print("CUDA version in PyTorch:", torch.version.cuda)  # Should match installed CUDA
-print("CUDA available:", torch.cuda.is_available()) 
-print("Number of GPUs:", torch.cuda.device_count())  
-print("GPU Name:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "No GPU detected")
+#Load Config
+with open("config_seg.yaml", "r") as file:
+    config = yaml.safe_load(file)
+    
+BATCH_SIZE = config["settings"]["batch_size"]
+NUM_WORKERS = config["settings"]["num_workers"]
+NUM_EPOCHS = config["settings"]["num_epochs"]
+LR_RATE = config["settings"]["lr_rate"]
+CHECKPOINT = config["settings"]["checkpoint"]
+BASE_CHECKPOINT = config["settings"]["base_checkpoint"]
+DATA_ROOT = config["directories"]["data_root"]
+IMAGE_SUBDIR = config["directories"]["image_subdir"]
+MASK_SUBDIR = config["directories"]["mask_subdir"]  
+SAVE_ROOT = config["directories"]["save_root"]
+IMAGE_SAVE_SUBDIR = config["directories"]["image_save_subdir"]
+MASK_SAVE_SUBDIR = config["directories"]["mask_save_subdir"]
+BOX_SAVE_SUBDIR = config["directories"]["box_save_subdir"]
 
-# Model definition
-BATCH_SIZE = 16
-NUM_WORKERS = 0
-NUM_EPOCHS = 40
-LR_RATE = 5e-4
-CHECKPOINT = "preprocess/model_seg/Vortex0222_01.pth" # freshly trained model name
-BASE_CHECKPOINT = "preprocess/model_seg/Vortex0219_01.pth" # pre-trained model name
-
-CONFIG= {}
-
-CONFIG["batch_size"] = BATCH_SIZE
-CONFIG["learning_rate"] = LR_RATE
-CONFIG["epochs"] = NUM_EPOCHS
-CONFIG["architecture"] = "decoder finetuning"
-CONFIG["dataset"] = "WebGL synthetic data"
-CONFIG["scheduler"] = "CosineAnnealingLR"
-CONFIG["loss"] = "DiceBCELoss"
-CONFIG["checkpoint"] = CHECKPOINT
-
-wandb.init(project="contour segmentation", reinit=True, resume="never", config= CONFIG)
-
-# Repository path
-DATA_ROOT = "dataset/WebGLfluid/original"
-IMAGE_SUBDIR = "raw"
-MASK_SUBDIR = "masked"
-
-SAVE_ROOT = "dataset/WebGLfluid/processed_data"
-IMAGE_SAVE_SUBDIR = "images"
-MASK_SAVE_SUBDIR = "masks"
-BOX_SAVE_SUBDIR = "boxes"
+wandb.init(project="contour segmentation", reinit=True, resume="never", config=config)
 
 # Preprocess images
 # preprocessorSeg = PreprocessorSeg(data_root=DATA_ROOT, image_subdir=IMAGE_SUBDIR, mask_subdir=MASK_SUBDIR, 

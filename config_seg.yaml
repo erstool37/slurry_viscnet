@@ -1,0 +1,16 @@
+settings:
+  batch_size : 16
+  num_workers : 0
+  num_epochs : 40
+  lr_rate : 5e-4
+  checkpont : "preprocess/model_seg/Vortex0222_01.pth" # freshly trained model name
+  base_checkpoint : "preprocess/model_seg/Vortex0219_01.pth" # pre-trained model name
+
+directories:
+  data_root : "dataset/WebGLfluid/original"
+  image_subdir : "raw"
+  mask_subdir : "masked"
+  save_root : "dataset/WebGLfluid/processed_data"
+  image_save_subdir : "images"
+  mask_save_subdir : "masks"
+  box_save_subdir : "boxes"
