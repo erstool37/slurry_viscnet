@@ -14,7 +14,7 @@ __py
 # mobile_sam/modeling/tiny_vit_sam.py
 # mobile_sam/modeling/transformer.py
 
-mobile_sam/utils/
+# mobile_sam/utils/
 
 mobile_sam/__init__.py
 mobile_sam/automatic_mask_generator.py
