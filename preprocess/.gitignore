@@ -4,14 +4,15 @@
 __py
 **/__pycache__/
 
-mobile_sam/modeling/__init__.py
-mobile_sam/modeling/common.py
-mobile_sam/modeling/image_encoder.py
-mobile_sam/modeling/mask_decoder.py
-mobile_sam/modeling/prompt_encoder.py
-mobile_sam/modeling/tiny_vit.py
-mobile_sam/modeling/tiny_vit_sam.py
-mobile_sam/modeling/transformer.py
+
+# mobile_sam/modeling/__init__.py
+# mobile_sam/modeling/common.py
+# mobile_sam/modeling/image_encoder.py
+# mobile_sam/modeling/mask_decoder.py
+# mobile_sam/modeling/prompt_encoder.py
+# mobile_sam/modeling/tiny_vit.py
+# mobile_sam/modeling/tiny_vit_sam.py
+# mobile_sam/modeling/transformer.py
 
 mobile_sam/utils/
 
@@ -19,7 +20,5 @@ mobile_sam/__init__.py
 mobile_sam/automatic_mask_generator.py
 mobile_sam/build_sam.py
 
-model_reg/
-model_seg/
 wandb/
 
