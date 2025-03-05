@@ -1,9 +1,15 @@
-# CUDA test
-import torch
+from setuptools import setup, find_packages
 
-print("PyTorch version:", torch.__version__)
-print("CUDA version in PyTorch:", torch.version.cuda) 
-print("CUDA available:", torch.cuda.is_available()) 
-print("Number of GPUs:", torch.cuda.device_count())  
-print("GPU Name:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "No GPU detected")
-
+setup(
+    name="your_project_name",
+    version="0.1.0",
+    author="Your Name",
+    description="Your project description",
+    packages=find_packages(),  # Automatically finds all packages
+    install_requires=open("requirements.txt").read().splitlines(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Operating System :: POSIX :: Linux",
+    ],
+    python_requires=">=3.7"
+)
