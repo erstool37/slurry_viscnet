@@ -2,7 +2,7 @@ albumentations==2.0.5
 numpy==2.2.3
 opencv_python==4.11.0.86
 opencv_python_headless==4.11.0.86
-patchify==0.2.3
+patchify
 Pillow==11.1.0
 pycocotools==2.0.8
 PyYAML==6.0.2
