@@ -1,9 +1,9 @@
 settings:
-  batch_size : 16
-  num_workers : 0
-  num_epochs : 40
+  batch_size : 128
+  num_workers : 64
+  num_epochs : 20
   lr_rate : 5e-4
-  checkpont : "preprocess/model_seg/Vortex0222_01.pth" # freshly trained model name
+  checkpoint : "preprocess/model_seg/Vortex0306_01.pth" # freshly trained model name
   base_checkpoint : "preprocess/model_seg/Vortex0219_01.pth" # pre-trained model name
 
 directories:

@@ -25,10 +25,10 @@ from preprocess.mobile_sam import sam_model_registry, SamAutomaticMaskGenerator,
 with open("config_seg.yaml", "r") as file:
     config = yaml.safe_load(file)
     
-BATCH_SIZE = config["settings"]["batch_size"]
-NUM_WORKERS = config["settings"]["num_workers"]
-NUM_EPOCHS = config["settings"]["num_epochs"]
-LR_RATE = config["settings"]["lr_rate"]
+BATCH_SIZE = int(config["settings"]["batch_size"])
+NUM_WORKERS = int(config["settings"]["num_workers"])
+NUM_EPOCHS = int(config["settings"]["num_epochs"])
+LR_RATE = float(config["settings"]["lr_rate"])
 CHECKPOINT = config["settings"]["checkpoint"]
 BASE_CHECKPOINT = config["settings"]["base_checkpoint"]
 DATA_ROOT = config["directories"]["data_root"]
@@ -46,6 +46,7 @@ wandb.init(project="contour segmentation", reinit=True, resume="never", config=c
 #                                       save_root=SAVE_ROOT, image_save_subdir=IMAGE_SAVE_SUBDIR, mask_save_subdir=MASK_SAVE_SUBDIR, box_save_subdir=BOX_SAVE_SUBDIR,
 #                                       radius_erosion=1, iter_erosion=1, radius_dilation=3, iter_dilation=2)
 # preprocessorSeg.process_images()
+print("preprocess complete")
 
 # Load images and pile in dataset
 model_type = "vit_t"
