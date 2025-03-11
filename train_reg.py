@@ -18,20 +18,20 @@ import yaml
 with open("config_reg.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-BATCH_SIZE = config["settings"]["batch_size"]
-NUM_WORKERS = config["settings"]["num_workers"]
-NUM_EPOCHS = config["settings"]["num_epochs"]
-REAL_NUM_EPOCHS = config["settings"]["real_num_epochs"]
-LR_RATE = config["settings"]["lr_rate"]
+BATCH_SIZE = int(config["settings"]["batch_size"])
+NUM_WORKERS = int(config["settings"]["num_workers"])
+NUM_EPOCHS = int(config["settings"]["num_epochs"])
+REAL_NUM_EPOCHS = int(config["settings"]["real_num_epochs"])
+LR_RATE = float(config["settings"]["lr_rate"])
 MASK_CHECKPOINT = config["settings"]["mask_checkpoint"]
 CHECKPOINT = config["settings"]["checkpoint"] 
 REAL_CHECKPOINT = config["settings"]["real_checkpoint"]
 CNN = config["settings"]["cnn"]
-LSTM_SIZE = config["settings"][{"lstm_size"}]
-LSTM_LAYERS = config["settings"]["lstm_layers"]
-FRAME_NUM = config["settings"]["frame_num"]
-TIME = config["settings"]["time"]
-OUTPUT_SIZE = config["settings"]["output_size"]
+LSTM_SIZE = int(config["settings"][{"lstm_size"}])
+LSTM_LAYERS = int(config["settings"]["lstm_layers"])
+FRAME_NUM = int(config["settings"]["frame_num"])
+TIME = int(config["settings"]["time"])
+OUTPUT_SIZE = int(config["settings"]["output_size"])
 DATA_ROOT = config["directories"]["data_root"]
 POINT_SUBDIR = config["directories"]["point_subdir"]
 MESH_SUBDIR = config["directories"]["mesh_subdir"]
@@ -44,17 +44,17 @@ REAL_SAVE_ROOT = config["directories"]["real_save_root"]
 wandb.init(project="viscosity estimation", reinit=True, resume="never", config= config)
 
 # Mesh Formation
-pointToMesh = pointToMesh(data_root=DATA_ROOT, point_subdir=POINT_SUBDIR, mesh_subdir=MESH_SUBDIR)
-pointToMesh.pointToMesh()
+# pointToMesh = pointToMesh(data_root=DATA_ROOT, point_subdir=POINT_SUBDIR, mesh_subdir=MESH_SUBDIR)
+# pointToMesh.pointToMesh()
 # Video Formation
-meshToVideo = meshToVideo(data_root=DATA_ROOT, mesh_subdir=MESH_SUBDIR, video_subdir=VIDEO_SUBDIR)
-meshToVideo.meshToVideo()
+# meshToVideo = meshToVideo(data_root=DATA_ROOT, mesh_subdir=MESH_SUBDIR, video_subdir=VIDEO_SUBDIR)
+# meshToVideo.meshToVideo()
 # Masking train video
-videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=DATA_ROOT, video_subdir=VIDEO_SUBDIR, save_root=SAVE_ROOT, frame_num=FRAME_NUM)
-videoToMask.mask_videos()
+# videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=DATA_ROOT, video_subdir=VIDEO_SUBDIR, save_root=SAVE_ROOT, frame_num=FRAME_NUM)
+# videoToMask.mask_videos()
 # Masking real world video
-videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=REAL_ROOT, video_subdir=VIDEO_SUBDIR, save_root=REAL_SAVE_ROOT, frame_num=FRAME_NUM)
-videoToMask.mask_videos()
+# videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=REAL_ROOT, video_subdir=VIDEO_SUBDIR, save_root=REAL_SAVE_ROOT, frame_num=FRAME_NUM)
+# videoToMask.mask_videos()
 
 class VideoDataset(Dataset):
     def __init__(self, video_paths, para_paths, frame_limit=FRAME_NUM*TIME):
