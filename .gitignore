@@ -1,7 +1,6 @@
 .DS_Store
 wandb
 dataset
-dataSynCFD
 dataSynWebGL
 test_mask.jpg
 test_vessl.yaml
