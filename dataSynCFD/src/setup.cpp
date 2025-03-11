@@ -1,39 +1,8 @@
 #include "setup.hpp"
 
-
-
-#ifdef BENCHMARK
+#ifdef BENCHMARK 
+#endif
 #include "info.hpp"
-void main_setup() { // benchmark; required extensions in defines.hpp: BENCHMARK, optionally FP16S or FP16C
-	// ################################################################## define simulation box size, viscosity and volume force ###################################################################
-	uint mlups = 0u; {
-
-		//LBM lbm( 32u,  32u,  32u, 1.0f);
-		//LBM lbm( 64u,  64u,  64u, 1.0f);
-		//LBM lbm(128u, 128u, 128u, 1.0f);
-		LBM lbm(256u, 256u, 256u, 1.0f); // default
-		//LBM lbm(384u, 384u, 384u, 1.0f);
-		//LBM lbm(512u, 512u, 512u, 1.0f);
-
-		//const uint memory = 1488u; // memory occupation in MB (for multi-GPU benchmarks: make this close to as large as the GPU's VRAM capacity)
-		//const uint3 lbm_N = resolution(float3(1.0f, 1.0f, 1.0f), memory); // input: simulation box aspect ratio and VRAM occupation in MB, output: grid resolution
-		//LBM lbm(1u*lbm_N.x, 1u*lbm_N.y, 1u*lbm_N.z, 1u, 1u, 1u, 1.0f); // 1 GPU
-		//LBM lbm(2u*lbm_N.x, 1u*lbm_N.y, 1u*lbm_N.z, 2u, 1u, 1u, 1.0f); // 2 GPUs
-		//LBM lbm(2u*lbm_N.x, 2u*lbm_N.y, 1u*lbm_N.z, 2u, 2u, 1u, 1.0f); // 4 GPUs
-		//LBM lbm(2u*lbm_N.x, 2u*lbm_N.y, 2u*lbm_N.z, 2u, 2u, 2u, 1.0f); // 8 GPUs
-
-		// #########################################################################################################################################################################################
-		for(uint i=0u; i<1000u; i++) {
-			lbm.run(10u, 1000u*10u);
-			mlups = max(mlups, to_uint((double)lbm.get_N()*1E-6/info.runtime_lbm_timestep_smooth));
-		}
-	} // make lbm object go out of scope to free its memory
-	print_info("Peak MLUPs/s = "+to_string(mlups));
-#if defined(_WIN32)
-	wait();
-#endif // Windows
-} /**/
-#endif // BENCHMARK
 
 void main_setup() { // water stirring; required extensions: FP16S, MOVING_BOUNDARIES, SUBGRID, INTERACTIVE_GRAPHICS or GRAPHICS, VOLUME_FORCE, EQUILIBRIUM_BOUNDARIES, SURFACE
 	// ################################################################## define simulation box size, viscosity, and volume force ###################################################################
@@ -53,7 +22,7 @@ void main_setup() { // water stirring; required extensions: FP16S, MOVING_BOUNDA
 	const float3 center = float3(lbm.center().x, lbm.center().y , 0.5f * radius);
 	const float lbm_omega = lbm_u / radius, lbm_domega = lbm_omega * lbm_dt;
  
-	Mesh* mesh = read_stl(get_exe_path() + "../stl/fan.stl", lbm.size(), center, 2.0f * radius);
+	Mesh * mesh = read_stl(get_exe_path() + "../stl/fan.stl", lbm.size(), center, 2.0f * radius);
  
 	const uint Nx = lbm.get_Nx(), Ny = lbm.get_Ny(), Nz = lbm.get_Nz();
 	const uint H = Nz / 2u; // Water height (half the domain)
@@ -88,7 +57,41 @@ void main_setup() { // water stirring; required extensions: FP16S, MOVING_BOUNDA
 	   }
  #endif // GRAPHICS && !INTERACTIVE_GRAPHICS
 	}
- } /**/
+ } 
+
+
+/*
+void main_setup() { // benchmark; required extensions in defines.hpp: BENCHMARK, optionally FP16S or FP16C
+	// ################################################################## define simulation box size, viscosity and volume force ###################################################################
+	uint mlups = 0u; {
+
+		//LBM lbm( 32u,  32u,  32u, 1.0f);
+		//LBM lbm( 64u,  64u,  64u, 1.0f);
+		//LBM lbm(128u, 128u, 128u, 1.0f);
+		LBM lbm(256u, 256u, 256u, 1.0f); // default
+		//LBM lbm(384u, 384u, 384u, 1.0f);
+		//LBM lbm(512u, 512u, 512u, 1.0f);
+
+		//const uint memory = 1488u; // memory occupation in MB (for multi-GPU benchmarks: make this close to as large as the GPU's VRAM capacity)
+		//const uint3 lbm_N = resolution(float3(1.0f, 1.0f, 1.0f), memory); // input: simulation box aspect ratio and VRAM occupation in MB, output: grid resolution
+		//LBM lbm(1u*lbm_N.x, 1u*lbm_N.y, 1u*lbm_N.z, 1u, 1u, 1u, 1.0f); // 1 GPU
+		//LBM lbm(2u*lbm_N.x, 1u*lbm_N.y, 1u*lbm_N.z, 2u, 1u, 1u, 1.0f); // 2 GPUs
+		//LBM lbm(2u*lbm_N.x, 2u*lbm_N.y, 1u*lbm_N.z, 2u, 2u, 1u, 1.0f); // 4 GPUs
+		//LBM lbm(2u*lbm_N.x, 2u*lbm_N.y, 2u*lbm_N.z, 2u, 2u, 2u, 1.0f); // 8 GPUs
+
+		// #########################################################################################################################################################################################
+		for(uint i=0u; i<1000u; i++) {
+			lbm.run(10u, 1000u*10u);
+			mlups = max(mlups, to_uint((double)lbm.get_N()*1E-6/info.runtime_lbm_timestep_smooth));
+		}
+	} // make lbm object go out of scope to free its memory
+	print_info("Peak MLUPs/s = "+to_string(mlups));
+#if defined(_WIN32)
+	wait();
+#endif // Windows
+} 
+#endif // BENCHMARK
+*/
 
 /*void main_setup() { // radial fan; required extensions in defines.hpp: FP16S, MOVING_BOUNDARIES, SUBGRID, INTERACTIVE_GRAPHICS or GRAPHICS
 	// ################################################################## define simulation box size, viscosity and volume force ###################################################################
