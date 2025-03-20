@@ -1,13 +1,6 @@
 # vessl storage copy-file . volume://vessl-storage/stir-data
+# watch -n 1 nvidia-smi
 
-# To open venv for vessl; required due to pydantic version collision
-# python -m venv vessl_env
-# source vessl_env/bin/activate
-# pip install vessl==0.1.191
-
-# to download files from storage to server: vessl storage copy-file 'volume://vessl-storage/viscnet' './original'
-
-# for cpp running > apt-get install libx11-dev x11proto-dev libxrandr-dev libxrender-dev
 aiohappyeyeballs==2.4.4
 aiohttp==3.11.12
 aiosignal==1.3.2

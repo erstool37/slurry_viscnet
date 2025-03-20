@@ -62,14 +62,14 @@ train_ds = VideoDataset(train_video_paths, train_para_paths, FRAME_NUM, TIME)
 val_ds = VideoDataset(val_para_paths, val_para_paths, FRAME_NUM, TIME)
 
 # Load data
-train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=2)
-val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=2)
+train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
 # Initialize the optimizer and loss function
 visc_model = ViscosityEstimator(CNN, LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE)
 
 optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=0)
-reg_loss = nn.MSELoss()
+criterion = nn.MSELoss()
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-6)
 
 # parameter Training Loop
@@ -77,24 +77,24 @@ num_epochs = NUM_EPOCHS
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 visc_model.to(device)
 visc_model.train()
-
+i=1
 for epoch in range(num_epochs):  
     train_losses = []
-    print(f"Epoch {epoch+1}/{num_epochs} - Training ")
-    for frames, parameters in train_dl:
+    print(f"Epoch {epoch+1}/{num_epochs} - Training ")  
+    for frames, parameters in train_dl:        
         frames, parameters = frames.to(device), parameters.to(device) # (B, F, C, H, W)  (B, P)
-
         outputs = visc_model(frames)
 
-        #loss calculation/optimization
-        train_loss = reg_loss(outputs, parameters)
+        train_loss = criterion(outputs, parameters)
         train_losses.append(train_loss.item())
+
         optimizer.zero_grad()
         train_loss.backward()
         optimizer.step()
-
+        print(f"{i}/{len(train_dl)}")
+        i+=1
         # loss print
-        if (len(train_losses)) % 50 == 0:
+        if (len(train_losses)) % 10 == 0:
             mean_train_loss = mean(train_losses)
             wandb.log({"train_loss": mean_train_loss})
     train_losses.clear()
@@ -109,7 +109,7 @@ for epoch in range(num_epochs):
         frames, parameters = frames.to(device), parameters.to(device)
         outputs = visc_model(frames)
 
-        val_loss = reg_loss(outputs, parameters)
+        val_loss = criterion(outputs, parameters)
         val_losses.append(val_loss.item())
     mean_val_loss = mean(val_losses)
     wandb.log({"val_loss": mean_val_loss})
