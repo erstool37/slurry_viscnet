@@ -1,21 +1,22 @@
-
 settings:
-  batch_size : 2
-  num_workers : 0
+  batch_size : 1
+  num_workers : 8
   num_epochs : 40
   real_num_workers : 40 # real world data fine tuning epochs
   lr_rate : 5e-4
   mask_checkpoint : "preprocess/model_seg/Vortex0219_01.pth" # masking model
-  checkpoint : "preprocess/model_reg/ViscSyn0222_01.pth" # freshly trained model 
-  real_checkpoint : "preprocess/model_reg/ViscReal0222_01.pth" # freshly fine tuned model with real world data
+  checkpoint : "preprocess/model_reg/ViscSyn0321_01.pth" # freshly trained model 
+  real_checkpoint : "preprocess/model_reg/ViscReal0321_01.pth" # freshly fine tuned model with real world data
   cnn : "resnet18"
   lstm_size : 128
   lstm_layers : 2
+  real_num_epochs : 30
+  frame_num : 10
+  time : 10
+  output_size : 3 # regression to density, dynamic viscosity, surface tension,
 
 directories :
-  data_root : "dataset/CFDfluid/original" # use dataset/realfluid/videos to make masked real world dataset, and use videoToMask.mask_videos()
-  point_subdir : "pointcloud"
-  mesh_subdir : "mesh"
+  data_root : "dataset/CFDfluid/" # use dataset/realfluid/videos to make masked real world dataset, and use videoToMask.mask_videos()
   video_subdir : "videos"
   para_subdir : "parameters"
   save_root : "dataset/CFDfluid/processed_data"
