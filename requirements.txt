@@ -1,5 +1,4 @@
-
-# opencv for headless env: apt install -y libgl1-mesa-glx
+# vessl storage copy-file . volume://vessl-storage/stir-data
 
 # To open venv for vessl; required due to pydantic version collision
 # python -m venv vessl_env
@@ -9,7 +8,6 @@
 # to download files from storage to server: vessl storage copy-file 'volume://vessl-storage/viscnet' './original'
 
 # for cpp running > apt-get install libx11-dev x11proto-dev libxrandr-dev libxrender-dev
-
 aiohappyeyeballs==2.4.4
 aiohttp==3.11.12
 aiosignal==1.3.2
@@ -118,7 +116,6 @@ notebook==7.3.2
 notebook_shim==0.2.4
 numpy==1.26.4
 oauthlib==3.2.2
-opencv-python==4.11.0.86
 opencv-python-headless==4.11.0.86
 outcome==1.3.0.post0
 overrides==7.7.0

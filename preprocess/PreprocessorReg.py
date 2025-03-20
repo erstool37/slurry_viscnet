@@ -1,21 +1,3 @@
-# GET point
-'''
-from pysplishsplash, export to dataset/CFDfluid/original/pointcloud
-'''
-# GET MSH
-class pointToMesh:
-    def __init__(self, data_root, point_subdir, mesh_subdir):
-        self.data_root = data_root
-        self.point_subdir = point_subdir
-        self.mesh_subdir = mesh_subdir
-
-# GET MP4
-class meshToVideo: #just use function?
-    def __init__(self, data_root, mesh_subdir, video_subdir):
-        self.data_root = data_root
-        self.mesh_subdir = mesh_subdir
-        self.video_subdir = video_subdir
-
 # Mask mp4 video
 import glob
 import os
