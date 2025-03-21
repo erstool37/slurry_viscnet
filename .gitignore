@@ -4,3 +4,4 @@ dataset
 dataSynWebGL
 test_mask.jpg
 test_vessl.yaml
+**/__pycache__/
