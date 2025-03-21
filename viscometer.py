@@ -8,6 +8,7 @@ import glob
 from src.model.ViscosityEstimator import ViscosityEstimator
 from src.utils.VideoDataset import VideoDataset
 from torch.utils.data import TensorDataset, DataLoader
+from src.utils.paraPreprocess import logdescaler, zdescaler
 # from preprocess.mobile_sam import sam_model_registry, SamPredictor
 
 # 1. Inference for WebGL Segmentation
@@ -63,8 +64,12 @@ visc_model.cuda()
 for frames, parameters in dl:
     frames, parameters = frames.to(device), parameters.to(device)
     outputs = visc_model(frames)
-    errors = (outputs - parameters) / parameters * 100
-    print("pred outputs", outputs)
-    print("ground_truth", parameters)
-    print("errors", errors)
 
+    unnorm_outputs = torch.stack([zdescaler(outputs[:, 0], 'density'), logdescaler(outputs[:, 1], 'dynamic_viscosity'), zdescaler(outputs[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
+    unnorm_parameters = torch.stack([zdescaler(parameters[:, 0], 'density'), logdescaler(parameters[:, 1], 'dynamic_viscosity'), zdescaler(parameters[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
+
+    errors = (unnorm_outputs - unnorm_parameters) / unnorm_parameters * 100
+
+    print("pred outputs", unnorm_outputs)
+    print("ground_truth", unnorm_parameters)
+    print("errors", errors)

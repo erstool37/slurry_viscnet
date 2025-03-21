@@ -5,7 +5,7 @@ from torchvision import models
 class ViscosityEstimator(nn.Module):
     def __init__(self, cnn_model, lstm_hidden_size, lstm_layers, output_size):
         super(ViscosityEstimator, self).__init__()
-        self.resnet = models.resnet18(pretrained=True)
+        self.resnet = models.resnet34(pretrained=True)
         self.cnn = nn.Sequential(*list(self.resnet.children())[:-1])
         self.cnn_out_features = 512
 
@@ -19,7 +19,6 @@ class ViscosityEstimator(nn.Module):
         """ x: (batch_size, sequence_length, channels, height, width)"""
         batch_size, frames, C, H, W = x.size()
         x = x.view(batch_size * frames, C, H, W)
-        print("폭풍전야")
         video_features = self.cnn(x) 
         video_features = video_features.view(batch_size, frames, -1) 
 
