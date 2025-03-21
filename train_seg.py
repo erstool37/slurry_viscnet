@@ -20,6 +20,8 @@ from torch import nn
 from torch.nn import functional as F
 from preprocess.PreprocessorSeg import PreprocessorSeg
 from preprocess.mobile_sam import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
+from src.losses.DiceBCELoss import DiceBCELoss
+from src.utils.VideoDataset import VideoDataset
 
 #Load Config
 with open("config_seg.yaml", "r") as file:
@@ -46,7 +48,6 @@ wandb.init(project="contour segmentation", reinit=True, resume="never", config=c
 #                                       save_root=SAVE_ROOT, image_save_subdir=IMAGE_SAVE_SUBDIR, mask_save_subdir=MASK_SAVE_SUBDIR, box_save_subdir=BOX_SAVE_SUBDIR,
 #                                       radius_erosion=1, iter_erosion=1, radius_dilation=3, iter_dilation=2)
 # preprocessorSeg.process_images()
-print("preprocess complete")
 
 # Load images and pile in dataset
 model_type = "vit_t"
@@ -58,43 +59,6 @@ mobile_sam.to(device=device)
 
 predictor = SamPredictor(mobile_sam)
 mask_generator = SamAutomaticMaskGenerator(mobile_sam)
-
-ImageMaskPathItem = namedtuple("ImageMaskPathItem", ["image_path", "mask_path"])
-class ImageMaskDataset(Dataset):
-    def __init__(self, root, image_subdir, mask_subdir, transform=None):
-        super().__init__()
-        self.root = root
-        self.image_subdir = image_subdir
-        self.mask_subdir = mask_subdir
-        self.transform = transform
-
-        images = glob.glob(osp.join(root, image_subdir, "*.png"))
-        images = sorted(images)
-        masks = [image.replace(image_subdir, mask_subdir) for image in images]
-
-        self.path_items = [ImageMaskPathItem(image_path=image, mask_path=mask) for image, mask in zip(images, masks)]
-        self._sanity_check()
-        print(f"Found {len(self.path_items)} image-mask pairs")
-
-    def _sanity_check(self):
-        for item in self.path_items:
-            assert osp.exists(item.image_path), f"Image path {item.image_path} does not exist"
-            assert osp.exists(item.mask_path), f"Mask path {item.mask_path} does not exist"
-
-    def __getitem__(self, index):
-        item = self.path_items[index]
-        image = np.array(Image.open(item.image_path).convert("RGB"))
-        mask = np.array(Image.open(item.mask_path).convert("L"))
-
-        if self.transform:
-            transformed = self.transform(image=image, mask=mask)
-            image = transformed["image"]
-            mask = transformed["mask"]
-
-        return image, mask
-
-    def __len__(self):
-        return len(self.path_items)
 
 transform = A.Compose(
     [A.Normalize(max_pixel_value=255.0), ToTensorV2()], is_check_shapes = False) #disabel size match verificaiton between img and mask
@@ -130,26 +94,7 @@ for name, param in mobile_sam.named_parameters():
 
 # Initialize the optimizer and loss function
 optimizer = Adam(mobile_sam.mask_decoder.parameters(), lr=LR_RATE, weight_decay=0)
-class DiceBCELoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
-        super(DiceBCELoss, self).__init__()
-
-    def forward(self, inputs, targets, smooth=1):
-
-        # comment out if your model contains a sigmoid or equivalent activation layer
-        inputs = F.sigmoid(inputs)
-
-        # flatten label and prediction tensors
-        inputs = inputs.view(-1)
-        targets = targets.view(-1)
-
-        intersection = (inputs * targets).sum()
-        dice_loss = 1 - (2.0 * intersection + smooth) / (inputs.sum() + targets.sum() + smooth)
-        BCE = F.binary_cross_entropy(inputs, targets, reduction="mean")
-        Dice_BCE = BCE + dice_loss
-
-        return Dice_BCE
-seg_loss = DiceBCELoss()
+criterion = DiceBCELoss()
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-6)
 
 # Training loop
@@ -169,7 +114,7 @@ for epoch in range(num_epochs):
         predicted_masks = torch.stack([output["masks"].squeeze(1).float() for output in outputs])
 
         # loss calculation/optimization
-        train_loss = seg_loss(predicted_masks, masks)
+        train_loss = criterions(predicted_masks, masks)
         train_losses.append(train_loss.item())
         optimizer.zero_grad()
         train_loss.backward()
@@ -193,7 +138,7 @@ for epoch in range(num_epochs):
         batched_input = [{"image": img, "original_size": (256, 256)} for img in images]  
         outputs = mobile_sam(batched_input=batched_input, multimask_output=False)
         predicted_masks = torch.stack([output["masks"].squeeze(1).float() for output in outputs])
-        val_loss = seg_loss(predicted_masks, masks)
+        val_loss = criterions(predicted_masks, masks)
         val_losses.append(val_loss.item())
     mean_val_loss = mean(val_losses)
     wandb.log({"val_loss": mean_val_loss})

@@ -1,11 +1,14 @@
-# Inference for Real Fluid Viscosity
-### provides infernece data and saves it in the dataset/realfluid/answer
-
-
-
 import cv2
-from preprocess.mobile_sam import sam_model_registry, SamPredictor
-from src.models.ViscosityEstimator import ViscosityEstimator
+import yaml
+import torch
+import numpy as np
+import os.path as osp
+import glob
+
+from src.model.ViscosityEstimator import ViscosityEstimator
+from src.utils.VideoDataset import VideoDataset
+from torch.utils.data import TensorDataset, DataLoader
+# from preprocess.mobile_sam import sam_model_registry, SamPredictor
 
 # 1. Inference for WebGL Segmentation
 """
@@ -38,23 +41,30 @@ LSTM_LAYERS = int(config["settings"]["lstm_layers"])
 FRAME_NUM = int(config["settings"]["frame_num"])
 TIME = int(config["settings"]["time"])
 OUTPUT_SIZE = int(config["settings"]["output_size"])
+DATA_ROOT = config["directories"]["data_root"]
+VIDEO_SUBDIR = config["directories"]["video_subdir"]
+PARA_SUBDIR = config["directories"]["para_subdir"]
+BATCH_SIZE = int(config["settings"]["batch_size"])
+NUM_WORKERS = int(config["settings"]["num_workers"])
 
-# test dataset
-test_video = cv2.cap
+video_path = sorted(glob.glob(osp.join(DATA_ROOT, VIDEO_SUBDIR, "data_1000.mp4")))
+para_path = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "config_1000.json")))
 
+ds = VideoDataset(video_path, para_path, FRAME_NUM, TIME)
+dl = DataLoader(ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
+
+# model load
 visc_model = ViscosityEstimator(CNN, LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 visc_model.load_state_dict(torch.load(CHECKPOINT))
 visc_model.eval()
 visc_model.cuda()
 
-outputs = visc_model(frames)
+for frames, parameters in dl:
+    frames, parameters = frames.to(device), parameters.to(device)
+    outputs = visc_model(frames)
+    errors = (outputs - parameters) / parameters * 100
+    print("pred outputs", outputs)
+    print("ground_truth", parameters)
+    print("errors", errors)
 
-with open(para_path, 'r') as file:
-            data = json.load(file)
-            density = data["density"]
-            dynVisc = data["dynamic_viscosity"]
-            surfT = data["surface_tension"]
-# 
-print("pred outputs", outputs)
-print("ground_truth", density, dynVisc, surfT)

@@ -3,6 +3,7 @@ import cv2
 import json
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 class VideoDataset(IterableDataset):
     def __init__(self, video_paths, para_paths, frame_num, time):
@@ -31,13 +32,10 @@ class VideoDataset(IterableDataset):
         while cap.isOpened() and len(frames) < self.frame_count:
             ret, frame = cap.read()
             if ret:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert BGR → RGB
-                frames.append(frame)
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) # Convert BGR → RGB
+                frame_resized = cv2.resize(frame, (256, 256), interpolation=cv2.INTER_LINEAR)  # Resize directly
+                frames.append(frame_resized)
         cap.release()
-
-        if len(frames) < self.frame_count:
-            pad_frames = [np.zeros_like(frames[0]) for _ in range(self.frame_count - len(frames))]
-            frames.extend(pad_frames)
 
         frames = np.array(frames, dtype=np.float32) / 255.0 # required only for no masked
 
@@ -51,6 +49,7 @@ class VideoDataset(IterableDataset):
             surfT = data["surface_tension"]
             
         return torch.tensor([density, dynVisc, surfT])
+
 
     """
     def __getitem__(self, index):

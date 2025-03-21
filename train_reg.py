@@ -59,30 +59,32 @@ train_video_paths, val_video_paths = train_test_split(video_paths, test_size=0.2
 train_para_paths, val_para_paths = train_test_split(para_paths, test_size=0.2, random_state=37)
 
 train_ds = VideoDataset(train_video_paths, train_para_paths, FRAME_NUM, TIME)
-val_ds = VideoDataset(val_para_paths, val_para_paths, FRAME_NUM, TIME)
+val_ds = VideoDataset(val_video_paths, val_para_paths, FRAME_NUM, TIME)
 
 # Load data
-train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
-val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
+val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # Initialize the optimizer and loss function
 visc_model = ViscosityEstimator(CNN, LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE)
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+visc_model.to(device)
 
 optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=0)
 criterion = nn.MSELoss()
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-6)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
 
+wandb.watch(visc_model, criterion, log="all", log_freq=5)
 # parameter Training Loop
 num_epochs = NUM_EPOCHS
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-visc_model.to(device)
-visc_model.train()
-i=1
 for epoch in range(num_epochs):  
     train_losses = []
     print(f"Epoch {epoch+1}/{num_epochs} - Training ")  
-    for frames, parameters in train_dl:        
+    visc_model.train()
+    for frames, parameters in train_dl:
+                
         frames, parameters = frames.to(device), parameters.to(device) # (B, F, C, H, W)  (B, P)
+        print("드가자")
         outputs = visc_model(frames)
 
         train_loss = criterion(outputs, parameters)
@@ -91,8 +93,7 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         train_loss.backward()
         optimizer.step()
-        print(f"{i}/{len(train_dl)}")
-        i+=1
+
         # loss print
         if (len(train_losses)) % 10 == 0:
             mean_train_loss = mean(train_losses)
@@ -104,7 +105,7 @@ for epoch in range(num_epochs):
     val_losses = []
     with torch.no_grad():
         print(f"Epoch {epoch+1}/{num_epochs} - Validation")
-
+    
     for frames, parameters in val_dl:
         frames, parameters = frames.to(device), parameters.to(device)
         outputs = visc_model(frames)
@@ -115,7 +116,7 @@ for epoch in range(num_epochs):
     wandb.log({"val_loss": mean_val_loss})
 
     scheduler.step()
-    current_lr = optimizer.get_last_lr[0]
+    current_lr = scheduler.get_last_lr()[0]
     print(f"Epoch {epoch+1}/{num_epochs} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.5f}")
 wandb.finish() 
 
