@@ -3,26 +3,49 @@ import os.path as osp
 import glob
 import math
 from statistics import mean, stdev
-
-DATA_ROOT = "../../dataset/CFDfluid/"
-PARA_SUBDIR = "parameters"
-NORM_SUBDIR = "parametersNorm"
-
-para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
-norm_path = osp.join(DATA_ROOT, NORM_SUBDIR)
+import numpy as np
+import torch
 
 def logscaler(lst): # 0~1 scaled data
     log_list = [math.log10(x) for x in lst]  # Apply log10 element-wise
     max_list = max(log_list)
     min_list = min(log_list)
     scaled = [(x - min_list) / (max_list - min_list) for x in log_list]
-    return scaled
+    return scaled, max_list, min_list
 
 def zscaler(lst):
     mean_val = mean(lst)
     std_val = stdev(lst)
     scaled = [(x - mean_val) / (2 * std_val) + 0.5 for x in lst] 
-    return scaled
+    return scaled, mean_val, std_val
+
+def logdescaler(scaled_lst, property):
+    path = osp.dirname(osp.abspath(__file__))
+    stat_path = osp.join(path,"../../dataset/CFDfluid/parametersNorm/statistics.json")
+    with open(stat_path, 'r') as file:
+        data = json.load(file)
+        max_lst = data[property]["max"]
+        min_lst = data[property]["min"]
+    descaled = [10 ** (x * (max_lst - min_lst) + min_lst) for x in scaled_lst]
+
+    return torch.tensor(descaled)
+
+def zdescaler(scaled_lst, property):
+    path = osp.dirname(osp.abspath(__file__))
+    stat_path = osp.join(path,"../../dataset/CFDfluid/parametersNorm/statistics.json")
+    with open(stat_path, 'r') as file:
+        data = json.load(file)
+        mean_lst = data[property]["mean"]
+        std_lst = data[property]["std"]
+    descaled = [(x - 0.5) * (2 * std_lst) + mean_lst for x in scaled_lst]
+
+    return torch.tensor(descaled)
+
+DATA_ROOT = "dataset/CFDfluid/"
+PARA_SUBDIR = "parameters"
+NORM_SUBDIR = "parametersNorm"
+para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
+norm_path = osp.join(DATA_ROOT, NORM_SUBDIR)
 
 dynVisc = []
 kinVisc = [] 
@@ -38,15 +61,40 @@ for path in para_paths:
         kinVisc.append(data["kinematic_viscosity"])
         surfT.append(data["surface_tension"])
         density.append(data["density"])
+print(surfT[0])
+print(density[0])
 
 # normalize
-dynViscnorm = logscaler(dynVisc)
-kinViscnorm = logscaler(kinVisc)
-surfTnorm = zscaler(surfT)
-densitynorm = zscaler(density)
+dynViscnorm, maxdynVisc, mindynVisc = logscaler(dynVisc)
+kinViscnorm, maxkinVisc, minkinVisc = logscaler(kinVisc)
+surfTnorm, meansurfT, stdsurfT = zscaler(surfT)
+densitynorm, meandensity, stddensity = zscaler(density)
 
-# stock
+# store normalized data
 for idx in range(len(dynViscnorm)):
-    data = {"density": density[idx], "dynamic_viscosity": dynViscnorm[idx], "surface_tension": surfTnorm[idx], "kinematic_viscosity": kinViscnorm[idx]}
+    data = {"density": densitynorm[idx], "dynamic_viscosity": dynViscnorm[idx], "surface_tension": surfTnorm[idx], "kinematic_viscosity": kinViscnorm[idx]}
     with open(f'{norm_path}/config_{(idx+1):04d}.json', 'w') as file:
         json.dump(data, file, indent=4)
+
+# store statistics data
+stats = {
+    "dynamic_viscosity": {
+        "max": maxdynVisc,
+        "min": mindynVisc
+    },
+    "kinematic_viscosity": {
+        "max": maxkinVisc,
+        "min": minkinVisc
+    },
+    "surface_tension": {
+        "mean": meansurfT,
+        "std": stdsurfT
+    },
+    "density": {
+        "mean": meandensity,
+        "std": stddensity
+    }
+}
+
+with open(f'{norm_path}/statistics.json', 'w') as file:
+    json.dump(stats, file, indent=4)

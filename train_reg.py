@@ -41,6 +41,7 @@ PARA_SUBDIR = config["directories"]["para_subdir"]
 SAVE_ROOT = config["directories"]["save_root"]
 REAL_ROOT = config["directories"]["real_root"]
 REAL_SAVE_ROOT = config["directories"]["real_save_root"]
+ETA_MIN = config["settings"]["eta_min"]
 
 wandb.init(project="viscosity estimation", reinit=True, resume="never", config= config)
 
@@ -72,7 +73,7 @@ visc_model.to(device)
 
 optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=0)
 criterion = nn.MSELoss()
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
 wandb.watch(visc_model, criterion, log="all", log_freq=5)
 # parameter Training Loop
@@ -84,7 +85,6 @@ for epoch in range(num_epochs):
     for frames, parameters in train_dl:
                 
         frames, parameters = frames.to(device), parameters.to(device) # (B, F, C, H, W)  (B, P)
-        print("드가자")
         outputs = visc_model(frames)
 
         train_loss = criterion(outputs, parameters)
