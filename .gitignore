@@ -5,3 +5,5 @@ dataSynWebGL
 test_mask.jpg
 test_vessl.yaml
 **/__pycache__/
+*.pyc
+src/model/__pycache__
