@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-class VideoDataset(IterableDataset):
+class VideoDataset(Dataset):
     def __init__(self, video_paths, para_paths, frame_num, time):
         '''Initialize dataset'''
         self.video_paths = video_paths
@@ -13,14 +13,10 @@ class VideoDataset(IterableDataset):
         self.frame_limit = frame_num * time
         self.frame_count = 30
 
-    def __len__(self):
-        return len(self.video_paths)
-
-    def __iter__(self):
-        for video_path, para_path in zip(self.video_paths, self.para_paths):
-            frames = self.__loadvideo__(video_path, self.frame_limit)
-            parameters = self.__loadparameters__(para_path)
-            yield frames, parameters
+    def __getitem__(self, index):
+        frames = self.__loadvideo__(self.video_paths[index], self.frame_limit)
+        parameters = self.__loadparameters__(self.para_paths[index])
+        return frames, parameters
 
     def __loadvideo__(self, video_path, frame_limit):
         cap = cv2.VideoCapture(video_path)
@@ -45,21 +41,20 @@ class VideoDataset(IterableDataset):
         with open(para_path, 'r') as file:
             data = json.load(file)
             density = data["density"]
-            dynVisc = data["dynamic_viscosity"]
-            surfT = data["surface_tension"]
+            dynVisc = float(data["dynamic_viscosity"])
+            surfT = float(data["surface_tension"])
             
-        return torch.tensor([density, dynVisc, surfT])
+        return torch.tensor([density, dynVisc, surfT], dtype=torch.float32)
 
+     def __len__(self):
+        return len(self.video_paths)
+
+    
 
     """
-    def __getitem__(self, index):
-        video_path = self.video_paths[index]
-        para_path = self.para_paths[index]
-        
-        frames = self.__loadvideo__(video_path, self.frame_limit)
-        frames = torch.tensor(frames, dtype=torch.float32).permute(0, 3, 1, 2)  # (T, C, H, W)
-
-        parameters = self.__loadparameters__(para_path)
-
-        return frames, parameters
+    def __iter__(self):
+        for video_path, para_path in zip(self.video_paths, self.para_paths):
+            frames = self.__loadvideo__(video_path, self.frame_limit)
+            parameters = self.__loadparameters__(para_path)
+            yield frames, parameters
     """

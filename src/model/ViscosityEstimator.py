@@ -19,6 +19,7 @@ class ViscosityEstimator(nn.Module):
         """ x: (batch_size, sequence_length, channels, height, width)"""
         batch_size, frames, C, H, W = x.size()
         x = x.view(batch_size * frames, C, H, W)
+
         video_features = self.cnn(x) 
         video_features = video_features.view(batch_size, frames, -1) 
 
