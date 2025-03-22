@@ -5,12 +5,15 @@ from torch.utils.data import TensorDataset, DataLoader
 import torch.nn as nn
 from torchvision import models
 import torch.optim as optim
+from tqdm import tqdm
 import cv2
 from torch.utils.data import Dataset, DataLoader, Subset
 # from preprocess.PreprocessorReg import videoToMask
 from sklearn.model_selection import train_test_split
 from src.utils.VideoDataset import VideoDataset
 from src.model.ViscosityEstimator import ViscosityEstimator
+from src.model.ViscosityResnet import ViscosityResnet
+from src.losses.MSLE import MSLELoss
 import os.path as osp
 import glob
 from statistics import mean
@@ -41,7 +44,7 @@ PARA_SUBDIR = config["directories"]["para_subdir"]
 SAVE_ROOT = config["directories"]["save_root"]
 REAL_ROOT = config["directories"]["real_root"]
 REAL_SAVE_ROOT = config["directories"]["real_save_root"]
-ETA_MIN = config["settings"]["eta_min"]
+ETA_MIN = float(config["settings"]["eta_min"])
 
 wandb.init(project="viscosity estimation", reinit=True, resume="never", config= config)
 
@@ -63,16 +66,18 @@ train_ds = VideoDataset(train_video_paths, train_para_paths, FRAME_NUM, TIME)
 val_ds = VideoDataset(val_video_paths, val_para_paths, FRAME_NUM, TIME)
 
 # Load data
-train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
+train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # Initialize the optimizer and loss function
 visc_model = ViscosityEstimator(CNN, LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE)
+# visc_model = ViscosityResnet(OUTPUT_SIZE)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 visc_model.to(device)
 
 optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=0)
-criterion = nn.MSELoss()
+# criterion = nn.MSELoss()
+criterion = MSLELoss()
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
 wandb.watch(visc_model, criterion, log="all", log_freq=5)
@@ -80,10 +85,10 @@ wandb.watch(visc_model, criterion, log="all", log_freq=5)
 num_epochs = NUM_EPOCHS
 for epoch in range(num_epochs):  
     train_losses = []
+    
     print(f"Epoch {epoch+1}/{num_epochs} - Training ")  
     visc_model.train()
-    for frames, parameters in train_dl:
-                
+    for frames, parameters in tqdm(train_dl):
         frames, parameters = frames.to(device), parameters.to(device) # (B, F, C, H, W)  (B, P)
         outputs = visc_model(frames)
 
@@ -99,7 +104,7 @@ for epoch in range(num_epochs):
             mean_train_loss = mean(train_losses)
             wandb.log({"train_loss": mean_train_loss})
     train_losses.clear()
-
+    
     # Validation loss calculation
     visc_model.eval()
     val_losses = []
@@ -118,7 +123,7 @@ for epoch in range(num_epochs):
     scheduler.step()
     current_lr = scheduler.get_last_lr()[0]
     print(f"Epoch {epoch+1}/{num_epochs} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.5f}")
-wandb.finish() 
+wandb.finish()
 
 # Save the model
 torch.save(visc_model.state_dict(), CHECKPOINT)

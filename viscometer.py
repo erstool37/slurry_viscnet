@@ -34,7 +34,7 @@ cv2.imwrite("test_mask.jpg", mask)
 with open("config_reg.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-CHECKPOINT = config["settings"]["checkpoint"] 
+CHECKPOINT = "src/model/weights_reg/ViscSyn0321_02.pth" 
 REAL_CHECKPOINT = config["settings"]["real_checkpoint"]
 CNN = config["settings"]["cnn"]
 LSTM_SIZE = int(config["settings"]["lstm_size"])
