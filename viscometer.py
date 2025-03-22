@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import os.path as osp
 import glob
-
+from sklearn.model_selection import train_test_split
 from src.model.ViscosityEstimator import ViscosityEstimator
 from src.utils.VideoDataset import VideoDataset
 from torch.utils.data import TensorDataset, DataLoader
@@ -34,9 +34,7 @@ cv2.imwrite("test_mask.jpg", mask)
 with open("config_reg.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-CHECKPOINT = "src/model/weights_reg/ViscSyn0321_02.pth" 
-REAL_CHECKPOINT = config["settings"]["real_checkpoint"]
-CNN = config["settings"]["cnn"]
+CHECKPOINT = "src/model/weights_reg/ViscSyn0322_01.pth" 
 LSTM_SIZE = int(config["settings"]["lstm_size"])
 LSTM_LAYERS = int(config["settings"]["lstm_layers"])
 FRAME_NUM = int(config["settings"]["frame_num"])
@@ -48,28 +46,34 @@ PARA_SUBDIR = config["directories"]["para_subdir"]
 BATCH_SIZE = int(config["settings"]["batch_size"])
 NUM_WORKERS = int(config["settings"]["num_workers"])
 
-video_path = sorted(glob.glob(osp.join(DATA_ROOT, VIDEO_SUBDIR, "data_1000.mp4")))
-para_path = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "config_1000.json")))
+video_paths = sorted(glob.glob(osp.join(DATA_ROOT, VIDEO_SUBDIR, "*.mp4")))
+para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
 
-ds = VideoDataset(video_path, para_path, FRAME_NUM, TIME)
-dl = DataLoader(ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
+train_video_paths, val_video_paths = train_test_split(video_paths, test_size=0.2, random_state=37)
+train_para_paths, val_para_paths = train_test_split(para_paths, test_size=0.2, random_state=37)
+
+train_ds = VideoDataset(train_video_paths, train_para_paths, FRAME_NUM, TIME)
+val_ds = VideoDataset(val_video_paths, val_para_paths, FRAME_NUM, TIME)
+
+train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
+val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # model load
-visc_model = ViscosityEstimator(CNN, LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE)
+visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 visc_model.load_state_dict(torch.load(CHECKPOINT))
 visc_model.eval()
 visc_model.cuda()
 
-for frames, parameters in dl:
+for frames, parameters in train_dl:
     frames, parameters = frames.to(device), parameters.to(device)
     outputs = visc_model(frames)
 
     unnorm_outputs = torch.stack([zdescaler(outputs[:, 0], 'density'), logdescaler(outputs[:, 1], 'dynamic_viscosity'), zdescaler(outputs[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
     unnorm_parameters = torch.stack([zdescaler(parameters[:, 0], 'density'), logdescaler(parameters[:, 1], 'dynamic_viscosity'), zdescaler(parameters[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
 
-    errors = (unnorm_outputs - unnorm_parameters) / unnorm_parameters * 100
+    errors = (abs(unnorm_outputs) - abs(unnorm_parameters)) / unnorm_parameters * 100
 
-    print("pred outputs", unnorm_outputs)
-    print("ground_truth", unnorm_parameters)
-    print("errors", errors)
+    print("MAPE pred outputs : ", unnorm_outputs)
+    print("MAPE ground_truth : ", unnorm_parameters)
+    print("MAPE errors: ", errors)

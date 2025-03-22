@@ -22,7 +22,7 @@ def zscaler(lst):
 
 def logdescaler(scaled_lst, property):
     path = osp.dirname(osp.abspath(__file__))
-    stat_path = osp.join(path,"../../dataset/CFDfluid/parametersNorm/statistics.json")
+    stat_path = osp.join(path,"../../dataset/CFDfluid/statistics.json")
     with open(stat_path, 'r') as file:
         data = json.load(file)
         max_lst = data[property]["max"]
@@ -33,7 +33,7 @@ def logdescaler(scaled_lst, property):
 
 def zdescaler(scaled_lst, property):
     path = osp.dirname(osp.abspath(__file__))
-    stat_path = osp.join(path,"../../dataset/CFDfluid/parametersNorm/statistics.json")
+    stat_path = osp.join(path,"../../dataset/CFDfluid/statistics.json")
     with open(stat_path, 'r') as file:
         data = json.load(file)
         mean_lst = data[property]["mean"]
@@ -83,5 +83,5 @@ stats = {
     "density": {"mean": meandensity,"std": stddensity}
 }
 
-with open(f'{norm_path}../statistics.json', 'w') as file:
+with open(f'{norm_path}/../statistics.json', 'w') as file:
     json.dump(stats, file, indent=4)
