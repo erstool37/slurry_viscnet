@@ -5,7 +5,7 @@ from torchvision import models
 class ViscosityResnet(nn.Module):
     def __init__(self, output_size):
         super(ViscosityResnet, self).__init__()
-        self.resnet = models.resnet34(pretrained=True)
+        self.resnet = models.resnet18(pretrained=True)
         self.cnn = nn.Sequential(*list(self.resnet.children())[:-1])
         self.cnn_out_features = 512
 

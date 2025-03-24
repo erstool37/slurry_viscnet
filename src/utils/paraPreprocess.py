@@ -43,7 +43,7 @@ def zdescaler(scaled_lst, property):
     return torch.tensor(descaled)
 
 # Start normalizing
-DATA_ROOT = "dataset/CFDfluid/" # use "../../dataset/CFDfluid" for creating stats.
+DATA_ROOT = "../../dataset/CFDfluid/" # use "../../dataset/CFDfluid" for creating stats.
 PARA_SUBDIR = "parameters"
 NORM_SUBDIR = "parametersNorm"
 para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
