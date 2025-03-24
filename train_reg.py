@@ -77,7 +77,7 @@ visc_model.to(device)
 
 optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=0)
 # criterion = nn.MSELoss()
-criterion = MSLELoss()
+criterion = MSLELoss(visc_model)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
 wandb.watch(visc_model, criterion, log="all", log_freq=5)
@@ -90,8 +90,10 @@ for epoch in range(num_epochs):
     visc_model.train()
     for frames, parameters in tqdm(train_dl):
         frames, parameters = frames.to(device), parameters.to(device) # (B, F, C, H, W)  (B, P)
-        outputs = visc_model(frames)
+        frames.requires_grad = True
+        parameters.requires_grad = True
 
+        outputs = visc_model(frames)
         train_loss = criterion(outputs, parameters)
         train_losses.append(train_loss.item())
 
