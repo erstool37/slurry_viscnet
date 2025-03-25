@@ -1,4 +1,4 @@
-# vessl storage copy-file . volume://vessl-storage/stir-data
+# vessl storage copy-file volume://vessl-storage/lbmvideo/newdata2/parameters . 
 # watch -n 1 nvidia-smi
 
 aiohappyeyeballs==2.4.4

@@ -20,17 +20,13 @@ class VideoDataset(Dataset):
 
     def __loadvideo__(self, video_path, frame_limit):
         cap = cv2.VideoCapture(video_path)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        start_frame = max(0, total_frames - self.frame_count)
-        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         frames = []
 
         while cap.isOpened() and len(frames) < self.frame_count:
             ret, frame = cap.read()
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) # Convert BGR → RGB
-                frame_resized = cv2.resize(frame, (256, 256), interpolation=cv2.INTER_LINEAR)  # Resize directly
-                frames.append(frame_resized)
+                frames.append(frame)
         cap.release()
 
         frames = np.array(frames, dtype=np.float32) / 255.0 # required only for no masked
@@ -48,9 +44,7 @@ class VideoDataset(Dataset):
 
     def __len__(self):
         return len(self.video_paths)
-
     
-
     """
     def __iter__(self):
         for video_path, para_path in zip(self.video_paths, self.para_paths):
