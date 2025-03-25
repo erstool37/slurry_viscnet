@@ -9,7 +9,7 @@ settings:
   real_checkpoint : "src/model/weights_reg/ViscReal0321_01.pth" # freshly fine tuned model with real world data
   cnn : "resnet34"
   lstm_size : 256 # originally 128
-  lstm_layers : 2
+  lstm_layers : 3
   real_num_epochs : 30
   frame_num : 10
   time : 10

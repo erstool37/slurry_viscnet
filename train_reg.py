@@ -70,8 +70,8 @@ train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers
 val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # Initialize the optimizer and loss function
-# visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE)
-visc_model = ViscosityResnet(OUTPUT_SIZE)
+visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE)
+# visc_model = ViscosityResnet(OUTPUT_SIZE) , only used for resnet based training
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 visc_model.to(device)
 
@@ -114,7 +114,7 @@ for epoch in range(num_epochs):
     with torch.no_grad():
         print(f"Epoch {epoch+1}/{num_epochs} - Validation")
     
-    for frames, parameters in val_dl:
+    for frames, parameters in tqdm(val_dl):
         frames, parameters = frames.to(device), parameters.to(device)
         outputs = visc_model(frames)
 
