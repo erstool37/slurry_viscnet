@@ -6,6 +6,7 @@ import os.path as osp
 import glob
 from sklearn.model_selection import train_test_split
 from src.model.ViscosityEstimator import ViscosityEstimator
+from src.model.ViscosityResnet import ViscosityResnet
 from src.utils.VideoDataset import VideoDataset
 from torch.utils.data import TensorDataset, DataLoader
 from src.utils.PreprocessorPara import logdescaler, zdescaler
@@ -35,7 +36,7 @@ cv2.imwrite("test_mask.jpg", mask)
 with open("config_reg.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-CHECKPOINT = "src/model/weights_reg/ViscSyn0322_01.pth" 
+CHECKPOINT = "src/model/weights_reg/ViscSyn0325_01.pth" 
 LSTM_SIZE = int(config["settings"]["lstm_size"])
 LSTM_LAYERS = int(config["settings"]["lstm_layers"])
 FRAME_NUM = int(config["settings"]["frame_num"])
@@ -61,6 +62,7 @@ val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NU
 
 # model load
 visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE)
+# visc_model = ViscosityResnet(OUTPUT_SIZE)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 visc_model.load_state_dict(torch.load(CHECKPOINT))
 visc_model.eval()
@@ -71,8 +73,13 @@ for frames, parameters in val_dl:
     frames, parameters = frames.to(device), parameters.to(device)
     outputs = visc_model(frames)
 
-    unnorm_outputs = torch.stack([zdescaler(outputs[:, 0], 'density'), logdescaler(outputs[:, 1], 'dynamic_viscosity'), zdescaler(outputs[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
-    unnorm_parameters = torch.stack([zdescaler(parameters[:, 0], 'density'), logdescaler(parameters[:, 1], 'dynamic_viscosity'), zdescaler(parameters[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
+    # unnorm_outputs = torch.stack([zdescaler(outputs[:, 0], 'density'), logdescaler(outputs[:, 1], 'dynamic_viscosity'), zdescaler(outputs[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
+    # unnorm_parameters = torch.stack([zdescaler(parameters[:, 0], 'density'), logdescaler(parameters[:, 1], 'dynamic_viscosity'), zdescaler(parameters[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
+    
+    # log scaling version
+    unnorm_outputs = torch.stack([logdescaler(outputs[:, 0], 'density'), logdescaler(outputs[:, 1], 'dynamic_viscosity'), logdescaler(outputs[:, 2], 'surface_tension')], dim=1)  
+    unnorm_parameters = torch.stack([logdescaler(parameters[:, 0], 'density'), logdescaler(parameters[:, 1], 'dynamic_viscosity'), logdescaler(parameters[:, 2], 'surface_tension')], dim=1)
+
 
     error = (abs(unnorm_outputs - unnorm_parameters)) / abs(unnorm_parameters) * 100
     errors.append(error)

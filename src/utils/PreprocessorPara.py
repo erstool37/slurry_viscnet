@@ -66,8 +66,10 @@ for path in para_paths:
 # normalize
 dynViscnorm, maxdynVisc, mindynVisc = logscaler(dynVisc)
 kinViscnorm, maxkinVisc, minkinVisc = logscaler(kinVisc)
-surfTnorm, meansurfT, stdsurfT = zscaler(surfT)
-densitynorm, meandensity, stddensity = zscaler(density)
+# surfTnorm, meansurfT, stdsurfT = zscaler(surfT)
+# densitynorm, meandensity, stddensity = zscaler(density)
+surfTnorm, maxsurfT, minsurfT = logscaler(surfT)
+densitynorm, maxdensity, mindensity = logscaler(density)
 
 # store normalized data
 for idx in range(len(dynViscnorm)):
@@ -76,11 +78,20 @@ for idx in range(len(dynViscnorm)):
         json.dump(data, file, indent=4)
 
 # store statistics data
+"""
 stats = {
     "dynamic_viscosity": {"max": maxdynVisc, "min": mindynVisc},
     "kinematic_viscosity": {"max": maxkinVisc,"min": minkinVisc},
     "surface_tension": {"mean": meansurfT,"std": stdsurfT},
     "density": {"mean": meandensity,"std": stddensity}
+}
+"""
+# all log scale version
+stats = {
+    "dynamic_viscosity": {"max": maxdynVisc, "min": mindynVisc},
+    "kinematic_viscosity": {"max": maxkinVisc,"min": minkinVisc},
+    "surface_tension": {"max": maxsurfT,"min": minsurfT},
+    "density": {"max": maxdensity,"min": mindensity}
 }
 
 with open(f'{norm_path}/../statistics.json', 'w') as file:
