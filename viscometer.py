@@ -9,6 +9,7 @@ from src.model.ViscosityEstimator import ViscosityEstimator
 from src.utils.VideoDataset import VideoDataset
 from torch.utils.data import TensorDataset, DataLoader
 from src.utils.PreprocessorPara import logdescaler, zdescaler
+from statistics import mean
 # from preprocess.mobile_sam import sam_model_registry, SamPredictor
 
 # 1. Inference for WebGL Segmentation
@@ -66,18 +67,21 @@ visc_model.eval()
 visc_model.cuda()
 
 errors = []
-for frames, parameters in train_dl:
+for frames, parameters in val_dl:
     frames, parameters = frames.to(device), parameters.to(device)
     outputs = visc_model(frames)
 
     unnorm_outputs = torch.stack([zdescaler(outputs[:, 0], 'density'), logdescaler(outputs[:, 1], 'dynamic_viscosity'), zdescaler(outputs[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
     unnorm_parameters = torch.stack([zdescaler(parameters[:, 0], 'density'), logdescaler(parameters[:, 1], 'dynamic_viscosity'), zdescaler(parameters[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
 
-    error = (abs(unnorm_outputs) - abs(unnorm_parameters)) / unnorm_parameters * 100
+    error = (abs(unnorm_outputs - unnorm_parameters)) / abs(unnorm_parameters) * 100
     errors.append(error)
 
-meanerror = mean(errors)
+errors = torch.cat(errors, dim=0)
+meanerror = torch.mean(errors, dim=0)
 
-print("MAPE pred outputs : ", unnorm_outputs)
-print("MAPE ground_truth : ", unnorm_parameters)
-print("MAPE errors: ", meanerror)
+# print("pred outputs : ", unnorm_outputs) # last output
+# print("ground_truth : ", unnorm_parameters) # last parameter
+print(f"density MAPE: {float(meanerror[0]):.2f}%")
+print(f"dynamic viscosity MAPE: {float(meanerror[1]):.2f}%")
+print(f"surface tension MAPE: {float(meanerror[2]):.2f}%")
