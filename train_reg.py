@@ -76,12 +76,9 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 visc_model.to(device)
 
 optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=0)
-<<<<<<< HEAD
+
 # criterion = nn.MSELoss()
 criterion = MSLELoss(visc_model)
-=======
-criterion = MSLELoss()
->>>>>>> a68928d (success)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
 wandb.watch(visc_model, criterion, log="all", log_freq=5)
