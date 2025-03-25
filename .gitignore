@@ -7,4 +7,4 @@ test_vessl.yaml
 **/__pycache__/
 *.pyc
 src/model/__pycache__
-src/utils/__pycache__
+src/utils/__pycache__/
