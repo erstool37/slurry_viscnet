@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import wandb
+from src.utils.PreprocessorPara import logdescaler, zdescaler
+import torch.nn.functional as F
 
 class MSLELoss(nn.Module):
     def __init__(self, model):
@@ -10,20 +12,32 @@ class MSLELoss(nn.Module):
     def forward(self, pred, target):
         pred = torch.clamp(pred, min=0)
         target = torch.clamp(target, min=0)
+
+        pred_den = logdescaler(pred[:,0], "density").unsqueeze(-1).to(pred.device)
+        pred_dynVisc = logdescaler(pred[:,1], "dynamic_viscosity").unsqueeze(-1).to(pred.device)
+        pred_kinVisc = (pred_dynVisc / pred_den)
+        pred = torch.cat((pred, pred_kinVisc), dim=-1)
+
+        ans_kinVisc = logdescaler(pred[:,3], "kinematic_viscosity")
+        target[:,3] = ans_kinVisc
+
         loss = (torch.log1p(pred) - torch.log1p(target)) ** 2 
 
         loss_den = loss[:, 0].mean()
         loss_dynvisc = loss[:, 1].mean()
         loss_surfT = loss[:, 2].mean()
+        loss_kinvisc = loss[:, 3].mean()
+        # loss_kinvisc = F.mse_loss(pred[:,3], target[:,3]) # already mean
 
-        loss_total = loss_den + loss_dynvisc + loss_surfT
+        loss_total = loss_den + 10 * loss_dynvisc + loss_surfT + loss_kinvisc
         # loss_total = loss_den * 869.831735393482 +  * 10**(loss_dynvisc * 3.657577315785776-0.029653116674823305) + loss_surfT * 0.033626156085620175
 
         wandb.log({"loss_den": loss_den})
         wandb.log({"loss_visc": loss_dynvisc})
         wandb.log({"loss_surf": loss_surfT})
+        # wandb.log({"loss_kinvisc": 10**6 * loss_kinvisc})
         # wandb.log({"loss_den_chunk": loss_den * 869.831735393482})
-        # wandb.log({"loss_visc_chunk": loss_dynvisc * 10**(3.657577315785776-0.029653116674823305)})
+        wandb.log({"loss_visc_chunk": loss_dynvisc * 10})
         # wandb.log({"loss_surf_chunk": loss_surfT * 0.033626156085620175})
         
         return loss_total

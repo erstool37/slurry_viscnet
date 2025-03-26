@@ -39,8 +39,9 @@ class VideoDataset(Dataset):
             density = data["density"]
             dynVisc = float(data["dynamic_viscosity"])
             surfT = float(data["surface_tension"])
+            kinVisc = float(data["kinematic_viscosity"])
             
-        return torch.tensor([density, dynVisc, surfT], dtype=torch.float32)
+        return torch.tensor([density, dynVisc, surfT, kinVisc], dtype=torch.float32)
 
     def __len__(self):
         return len(self.video_paths)

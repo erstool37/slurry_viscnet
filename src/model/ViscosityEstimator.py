@@ -3,7 +3,7 @@ import torch
 from torchvision import models
 
 class ViscosityEstimator(nn.Module):
-    def __init__(self, lstm_hidden_size, lstm_layers, output_size):
+    def __init__(self, lstm_hidden_size, lstm_layers, output_size, dropout):
         super(ViscosityEstimator, self).__init__()
         self.resnet = models.resnet18(pretrained=True)
         self.cnn = nn.Sequential(*list(self.resnet.children())[:-1])
@@ -12,7 +12,7 @@ class ViscosityEstimator(nn.Module):
         for param in self.cnn.parameters():
             param.requires_grad = True
 
-        self.lstm = nn.LSTM(input_size=self.cnn_out_features, hidden_size=lstm_hidden_size, num_layers=lstm_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_size=self.cnn_out_features, hidden_size=lstm_hidden_size, num_layers=lstm_layers, batch_first=True, dropout=dropout)
         self.fc = nn.Linear(lstm_hidden_size, output_size)
     
     def forward(self, x):

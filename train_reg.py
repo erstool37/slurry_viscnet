@@ -45,6 +45,8 @@ SAVE_ROOT = config["directories"]["save_root"]
 REAL_ROOT = config["directories"]["real_root"]
 REAL_SAVE_ROOT = config["directories"]["real_save_root"]
 ETA_MIN = float(config["settings"]["eta_min"])
+DROP_RATE = float(config["settings"]["drop_rate"])
+W_DECAY = float(config["settings"]["weight_decay"])
 
 wandb.init(project="viscosity estimation", reinit=True, resume="never", config= config)
 
@@ -70,12 +72,12 @@ train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers
 val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # Initialize the optimizer and loss function
-visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE)
+visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
 # visc_model = ViscosityResnet(OUTPUT_SIZE) , only used for resnet based training
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 visc_model.to(device)
 
-optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=0)
+optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=W_DECAY)
 
 # criterion = nn.MSELoss()
 criterion = MSLELoss(visc_model)
