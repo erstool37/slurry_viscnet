@@ -11,9 +11,11 @@ from torch.utils.data import Dataset, DataLoader, Subset
 # from preprocess.PreprocessorReg import videoToMask
 from sklearn.model_selection import train_test_split
 from src.utils.VideoDataset import VideoDataset
+from src.model.BayesianViscosityEstimator import BayesianViscosityEstimator
 from src.model.ViscosityEstimator import ViscosityEstimator
 from src.model.ViscosityResnet import ViscosityResnet
-from src.losses.MSLE import MSLELoss
+from src.losses.MSLELoss import MSLELoss
+from src.losses.NLLLoss import NLLLoss
 import os.path as osp
 import glob
 from statistics import mean
@@ -72,7 +74,8 @@ train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers
 val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # Initialize the optimizer and loss function
-visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
+visc_model = BayesianViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
+# visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
 # visc_model = ViscosityResnet(OUTPUT_SIZE), only used for resnet based training
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 visc_model.to(device)
@@ -80,7 +83,8 @@ visc_model.to(device)
 optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=W_DECAY)
 
 # criterion = nn.MSELoss()
-criterion = MSLELoss(visc_model)
+# criterion = MSLELoss(visc_model)
+criterion = NLLLoss()
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
 wandb.watch(visc_model, criterion, log="all", log_freq=5)
@@ -96,8 +100,14 @@ for epoch in range(num_epochs):
         frames.requires_grad = True
         parameters.requires_grad = True
 
-        outputs = visc_model(frames)
-        train_loss = criterion(outputs, parameters)
+        # outputs = visc_model(frames)
+        # train_loss = criterion(outputs, parameters)
+        mu, sigma = visc_model(frames)
+        train_loss = criterion(mu, sigma, parameters)
+        print("mu:", mu[0])
+        print("sigma:", sigma[0])
+        print("para:", parameters[0,:3])
+
         train_losses.append(train_loss.item())
 
         optimizer.zero_grad()
@@ -118,9 +128,13 @@ for epoch in range(num_epochs):
     
     for frames, parameters in tqdm(val_dl):
         frames, parameters = frames.to(device), parameters.to(device)
-        outputs = visc_model(frames)
 
-        val_loss = criterion(outputs, parameters)
+        # outputs = visc_model(frames)
+        # val_loss = criterion(outputs, parameters)
+
+        mu, sigma = visc_model(frames)
+        val_loss = criterion(mu, sigma, parameters)
+        
         val_losses.append(val_loss.item())
     mean_val_loss = mean(val_losses)
     wandb.log({"val_loss": mean_val_loss})
