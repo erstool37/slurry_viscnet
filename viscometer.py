@@ -13,7 +13,8 @@ from src.utils.PreprocessorPara import logdescaler, zdescaler
 from statistics import mean
 import matplotlib.pyplot as plt
 import seaborn as sns
-from collections import defaultdict
+from collections import 
+import torch.nn.functional as F
 # from preprocess.mobile_sam import sam_model_registry, SamPredictor
 
 # 1. Inference for WebGL Segmentation
@@ -70,7 +71,8 @@ val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NU
 test_dl = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # model load
-visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
+visc_model = BayesianViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
+# visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
 # visc_model = ViscosityResnet(OUTPUT_SIZE)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 visc_model.cuda()
@@ -153,3 +155,5 @@ for idx in range(len(grouped_outputs_list)):
     distribution(grouped_outputs_list[idx][:,0], ref = grouped_para_list[idx][0,0].cpu(), save_path=f'test/precision/dist{(idx+1):02d}_den.png')
     distribution(grouped_outputs_list[idx][:,1], ref = grouped_para_list[idx][0,1].cpu(), save_path=f'test/precision/dist{(idx+1):02d}_visco.png')
     distribution(grouped_outputs_list[idx][:,2], ref = grouped_para_list[idx][0,2].cpu(), save_path=f'test/precision/dist{(idx+1):02d}_surf.png')
+
+

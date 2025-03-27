@@ -1,11 +1,11 @@
 settings:
   batch_size : 16
   num_workers : 0
-  num_epochs : 50
+  num_epochs : 5
   real_num_workers : 0 # real world data fine tuning epochs
   lr_rate : 1e-4
   mask_checkpoint : "src/model/weights_seg/Vortex0219_01.pth" # masking model
-  checkpoint : "src/model/weights_reg/ViscSyn0327_01.pth" # freshly trained model 
+  checkpoint : "src/model/weights_reg/ViscSyn0328_01.pth" # freshly trained model 
   real_checkpoint : "src/model/weights_reg/ViscReal0321_01.pth" # freshly fine tuned model with real world data
   cnn : "resnet18"
   lstm_size : 128 # originally 128
