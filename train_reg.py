@@ -48,7 +48,7 @@ ETA_MIN = float(config["settings"]["eta_min"])
 DROP_RATE = float(config["settings"]["drop_rate"])
 W_DECAY = float(config["settings"]["weight_decay"])
 
-wandb.init(project="viscosity estimation", reinit=True, resume="never", config= config)
+wandb.init(project="viscosity estimation testing", reinit=True, resume="never", config= config)
 
 # Masking train video
 # videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=DATA_ROOT, video_subdir=VIDEO_SUBDIR, save_root=SAVE_ROOT, frame_num=FRAME_NUM)
@@ -73,7 +73,7 @@ val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NU
 
 # Initialize the optimizer and loss function
 visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
-# visc_model = ViscosityResnet(OUTPUT_SIZE) , only used for resnet based training
+# visc_model = ViscosityResnet(OUTPUT_SIZE), only used for resnet based training
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 visc_model.to(device)
 
