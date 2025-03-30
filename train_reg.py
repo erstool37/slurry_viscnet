@@ -8,7 +8,6 @@ import torch.optim as optim
 from tqdm import tqdm
 import cv2
 from torch.utils.data import Dataset, DataLoader, Subset
-# from preprocess.PreprocessorReg import videoToMask
 from sklearn.model_selection import train_test_split
 from src.utils.VideoDataset import VideoDataset
 from src.model.BayesianViscosityEstimator import BayesianViscosityEstimator
@@ -16,6 +15,7 @@ from src.model.ViscosityEstimator import ViscosityEstimator
 from src.model.ViscosityResnet import ViscosityResnet
 from src.losses.MSLELoss import MSLELoss
 from src.losses.NLLLoss import NLLLoss
+from src.losses.MAPELoss import MAPELoss
 import os.path as osp
 import glob
 from statistics import mean
@@ -52,15 +52,7 @@ W_DECAY = float(config["settings"]["weight_decay"])
 
 wandb.init(project="viscosity estimation testing", reinit=True, resume="never", config= config)
 
-# Masking train video
-# videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=DATA_ROOT, video_subdir=VIDEO_SUBDIR, save_root=SAVE_ROOT, frame_num=FRAME_NUM)
-# videoToMask.mask_videos()
-# Masking real world video
-# videoToMask = videoToMask(checkpoint = MASK_CHECKPOINT, data_root=REAL_ROOT, video_subdir=VIDEO_SUBDIR, save_root=REAL_SAVE_ROOT, frame_num=FRAME_NUM)
-# videoToMask.mask_videos()
-
-# train/val dataset split
-video_paths = sorted(glob.glob(osp.join(DATA_ROOT, VIDEO_SUBDIR, "*.mp4"))) # change to SAVE_ROOT for masked training
+video_paths = sorted(glob.glob(osp.join(DATA_ROOT, VIDEO_SUBDIR, "*.mp4")))
 para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
 
 train_video_paths, val_video_paths = train_test_split(video_paths, test_size=0.2, random_state=37)
@@ -69,71 +61,59 @@ train_para_paths, val_para_paths = train_test_split(para_paths, test_size=0.2, r
 train_ds = VideoDataset(train_video_paths, train_para_paths, FRAME_NUM, TIME)
 val_ds = VideoDataset(val_video_paths, val_para_paths, FRAME_NUM, TIME)
 
-# Load data
 train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # Initialize the optimizer and loss function
-visc_model = BayesianViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
-# visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
-# visc_model = ViscosityResnet(OUTPUT_SIZE), only used for resnet based training
+# visc_model = BayesianViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
+visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 visc_model.to(device)
-
 optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=W_DECAY)
-
-# criterion = nn.MSELoss()
-# criterion = MSLELoss(visc_model)
-criterion = NLLLoss()
+criterion = Loss()
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
+# Train loop
 wandb.watch(visc_model, criterion, log="all", log_freq=5)
-# parameter Training Loop
-num_epochs = NUM_EPOCHS
-for epoch in range(num_epochs):  
+
+for epoch in range(NUM_EPOCHS):  
     train_losses = []
-    
-    print(f"Epoch {epoch+1}/{num_epochs} - Training ")  
+    print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Training ")  
     visc_model.train()
     for frames, parameters in tqdm(train_dl):
         frames, parameters = frames.to(device), parameters.to(device) # (B, F, C, H, W)  (B, P)
         frames.requires_grad = True
         parameters.requires_grad = True
 
-        # outputs = visc_model(frames)
-        # train_loss = criterion(outputs, parameters)
-        mu, sigma = visc_model(frames)
-        train_loss = criterion(mu, sigma, parameters)
-        print("mu:", mu[0])
-        print("sigma:", sigma[0])
-        print("para:", parameters[0,:3])
+        outputs = visc_model(frames)
+        train_loss = criterion(outputs, parameters)
+        # mu, sigma = visc_model(frames)
+        # train_loss = criterion(mu, sigma, parameters)
 
         train_losses.append(train_loss.item())
-
         optimizer.zero_grad()
         train_loss.backward()
         optimizer.step()
 
-        # loss print
         if (len(train_losses)) % 10 == 0:
             mean_train_loss = mean(train_losses)
             wandb.log({"train_loss": mean_train_loss})
     train_losses.clear()
     
-    # Validation loss calculation
+    # Validation loss
     visc_model.eval()
     val_losses = []
     with torch.no_grad():
-        print(f"Epoch {epoch+1}/{num_epochs} - Validation")
+        print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Validation")
     
     for frames, parameters in tqdm(val_dl):
         frames, parameters = frames.to(device), parameters.to(device)
 
-        # outputs = visc_model(frames)
-        # val_loss = criterion(outputs, parameters)
+        outputs = visc_model(frames)
+        val_loss = criterion(outputs, parameters)
 
-        mu, sigma = visc_model(frames)
-        val_loss = criterion(mu, sigma, parameters)
+        # mu, sigma = visc_model(frames)
+        # val_loss = criterion(mu, sigma, parameters)
         
         val_losses.append(val_loss.item())
     mean_val_loss = mean(val_losses)
@@ -141,10 +121,8 @@ for epoch in range(num_epochs):
 
     scheduler.step()
     current_lr = scheduler.get_last_lr()[0]
-    print(f"Epoch {epoch+1}/{num_epochs} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.5f}")
+    print(f"Epoch {epoch+1}/{NUM_EPOCHS} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.5f}")
 wandb.finish()
-
-# Save the model
 torch.save(visc_model.state_dict(), CHECKPOINT)
 
 """

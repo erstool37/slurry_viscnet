@@ -5,25 +5,45 @@ from src.utils.PreprocessorPara import logdescaler, zdescaler
 import torch.nn.functional as F
 
 class MSLELoss(nn.Module):
-    def __init__(self, model):
+    def __init__(self):
         super(MSLELoss, self).__init__()
-        self.model = model
 
     def forward(self, pred, target):
         pred = torch.clamp(pred, min=0)
         target = torch.clamp(target, min=0)
-        loss = (torch.log1p(pred) - torch.log1p(target)) ** 2 
+        loss = (torch.log1p(pred + 1e-9) - torch.log1p(target[:,:3])) ** 2 
+
+        print(pred[:,1], target[:,1])
 
         loss_den = loss[:, 0].mean()
         loss_dynvisc = loss[:, 1].mean()
         loss_surfT = loss[:, 2].mean()
 
-        loss_total = loss_den + loss_dynvisc + loss_surfT
+        # loss_total = loss_den + loss_dynvisc + loss_surfT
+        loss_total = loss_dynvisc
 
-        wandb.log({"loss_den": loss_den})
+        # wandb.log({"loss_den": loss_den})
         wandb.log({"loss_visc": loss_dynvisc})
-        wandb.log({"loss_surf": loss_surfT})
-        return loss_total
+        # wandb.log({"loss_surf": loss_surfT})
+
+        # MAPE calculation
+        pred_den = logdescaler(pred[:,0], "density").unsqueeze(-1).to(pred.device)
+        pred_dynvisc = logdescaler(pred[:,1], "dynamic_viscosity").unsqueeze(-1).to(pred.device)
+        pred_surfT = logdescaler(pred[:,2], "surface_tension").unsqueeze(-1).to(pred.device)
+
+        target_den = logdescaler(target[:,0], "density").unsqueeze(-1).to(pred.device)
+        target_dynvisc = logdescaler(target[:,1], "dynamic_viscosity").unsqueeze(-1).to(pred.device)
+        target_surfT = logdescaler(target[:,2], "surface_tension").unsqueeze(-1).to(pred.device)
+
+        loss_mape_den = torch.mean((torch.abs(pred_den - target_den) / target_den)).unsqueeze(-1)
+        loss_mape_dynvisc = torch.mean((torch.abs(pred_dynvisc - target_dynvisc) / target_dynvisc)).unsqueeze(-1)
+        loss_mape_surfT = torch.mean((torch.abs(pred_surfT - target_surfT) / target_surfT)).unsqueeze(-1)
+
+        # wandb.log({"MAPE den %" : loss_mape_den * 100})
+        wandb.log({"MAPE dynvisc %" : 100 * loss_mape_dynvisc})
+        # wandb.log({"MAPE surfT %" : loss_mape_surfT * 100})
+
+        return loss_total 
 
     # this is adaptive constant method code
     """

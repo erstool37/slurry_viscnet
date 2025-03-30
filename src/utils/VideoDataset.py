@@ -29,9 +29,15 @@ class VideoDataset(Dataset):
                 frames.append(frame)
         cap.release()
 
-        frames = np.array(frames, dtype=np.float32) / 255.0 # required only for no masked
+        frames = np.array(frames, dtype=np.float32) # required only for no masked
+        frames = torch.tensor(frames, dtype=torch.float32).permute(0, 3, 1, 2)
+        
+        # FOR RESNET34
+        mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+        std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+        frames = (frames - mean) / std
 
-        return torch.tensor(frames, dtype=torch.float32).permute(0, 3, 1, 2) # (T, C, H, W)
+        return frames
     
     def __loadparameters__(self, para_path):
         with open(para_path, 'r') as file:

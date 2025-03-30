@@ -1,0 +1,60 @@
+import json
+import os.path as osp
+import glob
+import math
+from statistics import mean, stdev
+import numpy as np
+import torch
+from PreprocessorPara import logscaler, zscaler, logdescaler, zdescaler
+
+# Start normalizing
+DATA_ROOT = "../../dataset/CFDfluid"
+PARA_SUBDIR = "parameters"
+NORM_SUBDIR = "parametersNorm"
+para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
+norm_path = osp.join(DATA_ROOT, NORM_SUBDIR)
+
+dynVisc = []
+kinVisc = [] 
+surfT = []
+density = []
+
+# call variables
+for path in para_paths:
+    with open(path, 'r') as file:
+        data = json.load(file)
+        dynVisc.append(data["dynamic_viscosity"])
+        kinVisc.append(data["kinematic_viscosity"])
+        surfT.append(data["surface_tension"])
+        density.append(data["density"])
+
+# normalize
+dynViscnorm, maxdynVisc, mindynVisc = logscaler(dynVisc)
+kinViscnorm, maxkinVisc, minkinVisc = logscaler(kinVisc)
+surfTnorm, maxsurfT, minsurfT = logscaler(surfT)
+densitynorm, maxdensity, mindensity = logscaler(density)
+
+# store normalized data
+for idx in range(len(dynViscnorm)):
+    data = {"dynamic_viscosity": dynViscnorm[idx], "kinematic_viscosity": kinViscnorm[idx], "surface_tension": surfTnorm[idx],  "density": densitynorm[idx]}
+    with open(f'{norm_path}/config_{(idx+1):04d}.json', 'w') as file:
+        json.dump(data, file, indent=4)
+
+# store statistics data
+"""
+stats = {
+    "dynamic_viscosity": {"mean": maxdynVisc, "std": mindynVisc},
+    "kinematic_viscosity": {"mean": maxkinVisc,"std": minkinVisc},
+    "surface_tension": {"mean": maxsurfT,"std": minsurfT},
+    "density": {"mean": maxdensity,"std": mindensity}
+}
+"""
+stats = {
+    "dynamic_viscosity": {"max": maxdynVisc, "min": mindynVisc},
+    "kinematic_viscosity": {"max": maxkinVisc,"min": minkinVisc},
+    "surface_tension": {"max": maxsurfT,"min": minsurfT},
+    "density": {"max": maxdensity,"min": mindensity}
+}
+
+with open(f'{norm_path}/../statistics.json', 'w') as file:
+    json.dump(stats, file, indent=4)
