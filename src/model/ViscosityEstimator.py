@@ -5,12 +5,12 @@ from torchvision import models
 class ViscosityEstimator(nn.Module):
     def __init__(self, lstm_hidden_size, lstm_layers, output_size, dropout):
         super(ViscosityEstimator, self).__init__()
-        self.resnet = models.resnet18(pretrained=True)
+        self.resnet = models.resnet34(pretrained=True)
         self.cnn = nn.Sequential(*list(self.resnet.children())[:-1])
         self.cnn_out_features = 512
 
         for param in self.cnn.parameters():
-            param.requires_grad = True
+            param.requires_grad = False
 
         self.lstm = nn.LSTM(input_size=self.cnn_out_features, hidden_size=lstm_hidden_size, num_layers=lstm_layers, batch_first=True, dropout=dropout)
         self.fc = nn.Linear(lstm_hidden_size, output_size)
@@ -24,8 +24,8 @@ class ViscosityEstimator(nn.Module):
         video_features = video_features.view(batch_size, frames, -1) 
 
         lstm_out, _ = self.lstm(video_features)
-        lstm_last_out = lstm_out[:, -1, :]  # Take last time step output
+        lstm_last_out = lstm_out[:, -1, :]
         
-        viscosity = self.fc(lstm_last_out)  # (batch_size, output_size)
+        viscosity = self.fc(lstm_last_out)
         
         return viscosity

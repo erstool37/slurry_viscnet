@@ -1,5 +1,9 @@
 # vessl storage copy-file volume://vessl-storage/decayvalidation . 
 # watch -n 1 nvidia-smi
+# apt update
+# apt install tmux
+# tmux new -s slave1
+# tmux attach -t slave1
 
 aiohappyeyeballs==2.4.4
 aiohttp==3.11.12

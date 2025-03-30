@@ -13,7 +13,7 @@ from src.utils.PreprocessorPara import logdescaler, zdescaler
 from statistics import mean
 import matplotlib.pyplot as plt
 import seaborn as sns
-from collections import 
+from collections import defaultdict
 import torch.nn.functional as F
 # from preprocess.mobile_sam import sam_model_registry, SamPredictor
 
@@ -40,7 +40,7 @@ cv2.imwrite("test_mask.jpg", mask)
 with open("config_reg.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-CHECKPOINT = "src/model/weights_reg/ViscSyn0327_01.pth" 
+CHECKPOINT = "src/model/weights_reg/ViscSyn0330_03.pth" 
 LSTM_SIZE = int(config["settings"]["lstm_size"])
 LSTM_LAYERS = int(config["settings"]["lstm_layers"])
 FRAME_NUM = int(config["settings"]["frame_num"])
@@ -59,8 +59,8 @@ para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
 test_video_paths = sorted(glob.glob(osp.join(TEST_ROOT, VIDEO_SUBDIR, "*.mp4")))
 test_para_paths = sorted(glob.glob(osp.join(TEST_ROOT, "parameters", "*.json"))) # for test
 
-train_video_paths, val_video_paths = train_test_split(video_paths, test_size=0.2, random_state=37)
-train_para_paths, val_para_paths = train_test_split(para_paths, test_size=0.2, random_state=37)
+train_video_paths, val_video_paths = train_test_split(video_paths, test_size=0.05, random_state=37)
+train_para_paths, val_para_paths = train_test_split(para_paths, test_size=0.05, random_state=37)
 
 train_ds = VideoDataset(train_video_paths, train_para_paths, FRAME_NUM, TIME)
 val_ds = VideoDataset(val_video_paths, val_para_paths, FRAME_NUM, TIME)
@@ -71,8 +71,8 @@ val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NU
 test_dl = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # model load
-visc_model = BayesianViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
-# visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
+# visc_model = BayesianViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
+visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
 # visc_model = ViscosityResnet(OUTPUT_SIZE)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 visc_model.cuda()
@@ -84,17 +84,14 @@ errors = []
 for frames, parameters in val_dl:
     frames, parameters = frames.to(device), parameters.to(device)
     outputs = visc_model(frames)
-
-    # zscale, log scale mixed version
-    # unnorm_outputs = torch.stack([zdescaler(outputs[:, 0], 'density'), logdescaler(outputs[:, 1], 'dynamic_viscosity'), zdescaler(outputs[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
-    # unnorm_parameters = torch.stack([zdescaler(parameters[:, 0], 'density'), logdescaler(parameters[:, 1], 'dynamic_viscosity'), zdescaler(parameters[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
+    # unnorm_outputs = torch.stack([zdescaler(outputs[:, 0], 'density'), zdescaler(outputs[:, 1], 'dynamic_viscosity'), zdescaler(outputs[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
+    # unnorm_parameters = torch.stack([zdescaler(parameters[:, 0], 'density'), zdescaler(parameters[:, 1], 'dynamic_viscosity'), zdescaler(parameters[:, 2], 'surface_tension')], dim=1)  # Shape: (batch, 3)
     
     # log scaling version
     unnorm_outputs = torch.stack([logdescaler(outputs[:, 0], 'density'), logdescaler(outputs[:, 1], 'dynamic_viscosity'), logdescaler(outputs[:, 2], 'surface_tension')], dim=1)  
     unnorm_parameters = torch.stack([logdescaler(parameters[:, 0], 'density'), logdescaler(parameters[:, 1], 'dynamic_viscosity'), logdescaler(parameters[:, 2], 'surface_tension')], dim=1)
-
     error = (unnorm_outputs - unnorm_parameters) / abs(unnorm_parameters) * 100
-    errors.append(error)
+    errors.append(error.detach().cpu())
 
 errors = torch.cat(errors, dim=0) # error concat
 meanerror = torch.mean(torch.abs(errors), dim=0) # mean, absolute error calculation
@@ -133,11 +130,11 @@ for frames, parameters in test_dl:
     frames, parameters = frames.to(device), parameters.to(device)
     outputs = visc_model(frames)
     
-    unnorm_outputs = torch.stack([logdescaler(outputs[:, 0], 'density'), logdescaler(outputs[:, 1], 'dynamic_viscosity'), logdescaler(outputs[:, 2], 'surface_tension')], dim=1)  
+    unnorm_outputs = torch.stack([zdescaler(outputs[:, 0], 'density'), zdescaler(outputs[:, 1], 'dynamic_viscosity'), zdescaler(outputs[:, 2], 'surface_tension')], dim=1)  
     unnorm_para = torch.stack([parameters[:, 0], parameters[:, 1], parameters[:, 2]], dim=1)
     
-    unnorm_outputs_list.append(unnorm_outputs) 
-    unnorm_para_list.append(unnorm_para)
+    unnorm_outputs_list.append(unnorm_outputs.detach().cpu()) 
+    unnorm_para_list.append(unnorm_para.detach().cpu())
 
 unnorm_outputs_list = torch.cat(unnorm_outputs_list, dim=0)
 unnorm_para_list = torch.cat(unnorm_para_list, dim=0)
@@ -155,5 +152,3 @@ for idx in range(len(grouped_outputs_list)):
     distribution(grouped_outputs_list[idx][:,0], ref = grouped_para_list[idx][0,0].cpu(), save_path=f'test/precision/dist{(idx+1):02d}_den.png')
     distribution(grouped_outputs_list[idx][:,1], ref = grouped_para_list[idx][0,1].cpu(), save_path=f'test/precision/dist{(idx+1):02d}_visco.png')
     distribution(grouped_outputs_list[idx][:,2], ref = grouped_para_list[idx][0,2].cpu(), save_path=f'test/precision/dist{(idx+1):02d}_surf.png')
-
-
