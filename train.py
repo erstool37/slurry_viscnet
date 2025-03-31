@@ -1,55 +1,64 @@
 import torch
-import wandb
-import numpy as np
-from torch.utils.data import TensorDataset, DataLoader
 import torch.nn as nn
 from torchvision import models
-import torch.optim as optim
-from tqdm import tqdm
 import cv2
-from torch.utils.data import Dataset, DataLoader, Subset
-from sklearn.model_selection import train_test_split
-from src.utils.VideoDataset import VideoDataset
-from src.model.BayesianViscosityEstimator import BayesianViscosityEstimator
-from src.model.ViscosityEstimator import ViscosityEstimator
-from src.model.ViscosityResnet import ViscosityResnet
-from src.losses.MSLELoss import MSLELoss
-from src.losses.NLLLoss import NLLLoss
-from src.losses.MAPELoss import MAPELoss
+import wandb
+import argparse
+import numpy as np
 import os.path as osp
 import glob
+import torch.optim as optim
+from tqdm import tqdm
 from statistics import mean
+import importlib
 import yaml
 import json
+from torch.utils.data import TensorDataset, DataLoader, Dataset, Subset
+from sklearn.model_selection import train_test_split
+from src.datasets.VideoDataset import VideoDataset
+from src.utils.utils import MAPEcalculator
 
-# Load Config
-with open("config_reg.yaml", "r") as file:
+parser = argparse.ArgumentParser()
+parser.add_argument("--config", type=str, default="configs/config.yaml")
+args = parser.parse_args()
+
+with open(args.config, "r") as file:
     config = yaml.safe_load(file)
+cfg = config["regression"]
 
-BATCH_SIZE = int(config["settings"]["batch_size"])
-NUM_WORKERS = int(config["settings"]["num_workers"])
-NUM_EPOCHS = int(config["settings"]["num_epochs"])
-REAL_NUM_EPOCHS = int(config["settings"]["real_num_epochs"])
-LR_RATE = float(config["settings"]["lr_rate"])
-MASK_CHECKPOINT = config["settings"]["mask_checkpoint"]
-CHECKPOINT = config["settings"]["checkpoint"] 
-REAL_CHECKPOINT = config["settings"]["real_checkpoint"]
-CNN = config["settings"]["cnn"]
-LSTM_SIZE = int(config["settings"]["lstm_size"])
-LSTM_LAYERS = int(config["settings"]["lstm_layers"])
-FRAME_NUM = int(config["settings"]["frame_num"])
-TIME = int(config["settings"]["time"])
-OUTPUT_SIZE = int(config["settings"]["output_size"])
-DATA_ROOT = config["directories"]["data_root"]
-VIDEO_SUBDIR = config["directories"]["video_subdir"]
-PARA_SUBDIR = config["directories"]["para_subdir"]
-SAVE_ROOT = config["directories"]["save_root"]
-REAL_ROOT = config["directories"]["real_root"]
-REAL_SAVE_ROOT = config["directories"]["real_save_root"]
-ETA_MIN = float(config["settings"]["eta_min"])
-DROP_RATE = float(config["settings"]["drop_rate"])
-W_DECAY = float(config["settings"]["weight_decay"])
+BATCH_SIZE      = int(cfg["train_settings"]["batch_size"])
+NUM_WORKERS     = int(cfg["train_settings"]["num_workers"])
+NUM_EPOCHS      = int(cfg["train_settings"]["num_epochs"])
+REAL_NUM_EPOCHS = int(cfg["real_model"]["real_num_epochs"])
+LR              = float(cfg["optimizer"]["lr"])
+ETA_MIN         = float(cfg["optimizer"]["eta_min"])
+W_DECAY         = float(cfg["optimizer"]["weight_decay"])
+MASK_CHECKPOINT = cfg["directories"]["checkpoint"]["mask_checkpoint"]
+CHECKPOINT      = cfg["directories"]["checkpoint"]["checkpoint"]
+REAL_CHECKPOINT = cfg["directories"]["checkpoint"]["real_checkpoint"]
+MODEL           = cfg["model"]["model_class"]
+CNN             = cfg["model"]["cnn"]
+CNN_TRAIN       = cfg["model"]["cnn_train"]
+LOSS            = cfg["loss"]
+OPTIM_CLASS     = cfg["optimizer"]["optim_class"]
+SCHEDULER_CLASS = cfg["optimizer"]["scheduler_class"]
+LSTM_SIZE       = int(cfg["model"]["lstm_size"])
+LSTM_LAYERS     = int(cfg["model"]["lstm_layers"])
+FRAME_NUM       = int(cfg["preprocess"]["frame_num"])
+TIME            = int(cfg["preprocess"]["time"])
+OUTPUT_SIZE     = int(cfg["model"]["output_size"])
+DROP_RATE       = float(cfg["model"]["drop_rate"])
+DATA_ROOT       = cfg["directories"]["data"]["data_root"]
+VIDEO_SUBDIR    = cfg["directories"]["data"]["video_subdir"]
+PARA_SUBDIR     = cfg["directories"]["data"]["para_subdir"]
+SAVE_ROOT       = cfg["directories"]["data"]["save_root"]
+REAL_ROOT       = cfg["directories"]["data"]["real_root"]
+REAL_SAVE_ROOT  = cfg["directories"]["data"]["real_save_root"]
 
+loss_module = importlib.import_module(f"src.losses.{LOSS}")
+model_module = importlib.import_module(f"src.models.{MODEL}")
+
+# LOAD DATA
 wandb.init(project="viscosity estimation testing", reinit=True, resume="never", config= config)
 
 video_paths = sorted(glob.glob(osp.join(DATA_ROOT, VIDEO_SUBDIR, "*.mp4")))
@@ -64,32 +73,37 @@ val_ds = VideoDataset(val_video_paths, val_para_paths, FRAME_NUM, TIME)
 train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
-# Initialize the optimizer and loss function
-# visc_model = BayesianViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
-visc_model = ViscosityEstimator(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE)
+# DEFINE MODEL
+model_class = getattr(model_module, MODEL)
+criterion_class = getattr(loss_module, LOSS)
+optim_class = getattr(optim, OPTIM_CLASS)
+scheduler_class = getattr(optim.lr_scheduler, SCHEDULER_CLASS)
+
+visc_model = model_class(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE, CNN, CNN_TRAIN)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 visc_model.to(device)
-optimizer = torch.optim.Adam(visc_model.parameters(), lr=LR_RATE, weight_decay=W_DECAY)
-criterion = Loss()
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
+criterion = criterion_class()
+optimizer = optim_class(visc_model.parameters(), lr=LR, weight_decay=W_DECAY)
+scheduler = scheduler_class(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
-# Train loop
-wandb.watch(visc_model, criterion, log="all", log_freq=5)
-
+# TRAIN MODEL
+wandb.watch(visc_model, criterion, log="all", log_freq=10)
 for epoch in range(NUM_EPOCHS):  
     train_losses = []
     print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Training ")  
     visc_model.train()
     for frames, parameters in tqdm(train_dl):
-        frames, parameters = frames.to(device), parameters.to(device) # (B, F, C, H, W)  (B, P)
-        frames.requires_grad = True
-        parameters.requires_grad = True
-
-        outputs = visc_model(frames)
-        train_loss = criterion(outputs, parameters)
-        # mu, sigma = visc_model(frames)
-        # train_loss = criterion(mu, sigma, parameters)
-
+        frames, parameters = frames.to(device), parameters.to(device) # (B, F, C, H, W) // (B, P)
+        
+        if MODEL == "BayesianViscosityEstimator":
+            mu, sigma = visc_model(frames)
+            train_loss = criterion(mu, sigma, parameters)
+            MAPEcalculator(mu.detach(), parameters.detach(), "train")
+        else:
+            outputs = visc_model(frames)
+            train_loss = criterion(outputs, parameters)
+            MAPEcalculator(outputs.detach(), parameters.detach(), "train")
+        
         train_losses.append(train_loss.item())
         optimizer.zero_grad()
         train_loss.backward()
@@ -99,8 +113,8 @@ for epoch in range(NUM_EPOCHS):
             mean_train_loss = mean(train_losses)
             wandb.log({"train_loss": mean_train_loss})
     train_losses.clear()
-    
-    # Validation loss
+
+    # VALIDATION
     visc_model.eval()
     val_losses = []
     with torch.no_grad():
@@ -109,19 +123,22 @@ for epoch in range(NUM_EPOCHS):
     for frames, parameters in tqdm(val_dl):
         frames, parameters = frames.to(device), parameters.to(device)
 
-        outputs = visc_model(frames)
-        val_loss = criterion(outputs, parameters)
-
-        # mu, sigma = visc_model(frames)
-        # val_loss = criterion(mu, sigma, parameters)
-        
+        if MODEL == "BayesianViscosityEstimator":
+            mu, sigma = visc_model(frames)
+            val_loss = criterion(mu, sigma, parameters)
+        else:
+            outputs = visc_model(frames)
+            val_loss = criterion(outputs, parameters)
         val_losses.append(val_loss.item())
-    mean_val_loss = mean(val_losses)
-    wandb.log({"val_loss": mean_val_loss})
+        MAPEcalculator(outputs.detach(), parameters.detach(), "val")
 
+    mean_val_loss = mean(val_losses)
+    val_losses.clear()
+    wandb.log({"val_loss": mean_val_loss})
     scheduler.step()
     current_lr = scheduler.get_last_lr()[0]
-    print(f"Epoch {epoch+1}/{NUM_EPOCHS} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.5f}")
+    print(f"Epoch {epoch+1}/{NUM_EPOCHS} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.7f}")
+    val_losses.clear()
 wandb.finish()
 torch.save(visc_model.state_dict(), CHECKPOINT)
 

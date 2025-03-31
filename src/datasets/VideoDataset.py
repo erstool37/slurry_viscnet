@@ -14,11 +14,11 @@ class VideoDataset(Dataset):
         self.frame_count = 30
 
     def __getitem__(self, index):
-        frames = self.__loadvideo__(self.video_paths[index], self.frame_limit)
-        parameters = self.__loadparameters__(self.para_paths[index])
+        frames = self._loadvideo(self.video_paths[index], self.frame_limit)
+        parameters = self._loadparameters(self.para_paths[index])
         return frames, parameters
 
-    def __loadvideo__(self, video_path, frame_limit):
+    def _loadvideo(self, video_path, frame_limit):
         cap = cv2.VideoCapture(video_path)
         frames = []
 
@@ -39,7 +39,7 @@ class VideoDataset(Dataset):
 
         return frames
     
-    def __loadparameters__(self, para_path):
+    def _loadparameters(self, para_path):
         with open(para_path, 'r') as file:
             data = json.load(file)
             density = data["density"]
@@ -52,6 +52,7 @@ class VideoDataset(Dataset):
     def __len__(self):
         return len(self.video_paths)
     
+    # for Iterable Dataset
     """
     def __iter__(self):
         for video_path, para_path in zip(self.video_paths, self.para_paths):
