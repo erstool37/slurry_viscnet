@@ -50,20 +50,53 @@ kinViscnorm, con1kinVisc, con2kinVisc = scaler(kinVisc)
 surfTnorm, con1surfT, con2surfT = scaler(surfT)
 densitynorm, con1density, con2density = scaler(density)
 
+# sanity check
+MAXMIN = 
+
+1000
+if con1dynVisc == con2dynVisc:
+    dynViscnorm = 1
+    con1dynVisc += 1e-4
+if con1kinVisc == con2kinVisc:
+    kinViscnorm += 1e-5
+    con1kinVisc += 1e-5
+if con1surfT == con2surfT:
+    surfTnorm += 1e-5
+    con1surfT += 1e-3
+if con1density == con2density:
+    densitynorm += 1e-5
+    con1density += 100
+if con2dynVisc == 0:
+    dynViscnorm += 1e-5
+    con1dynVisc -= 1e-4
+    con2dynVisc += 1e-4
+if con2kinVisc == 0:   
+    kinViscnorm += 1e-5
+    con1kinVisc -= 1e-5 
+    con2kinVisc += 1e-5
+if con2surfT == 0:
+    surfTnorm += 1e-5
+    con1surfT -= 1e-3
+    con2surfT += 1e-3
+if con2density == 0:
+    densitynorm += 1e-5
+    con1density -= 100
+    con2density += 100
+
 if "z" in NORMALIZE:
     stats = {
-    "dynamic_viscosity": {"mean": con1dynVisc, "std": con2dynVisc},
-    "kinematic_viscosity": {"mean": con1kinVisc,"std": con2kinVisc},
-    "surface_tension": {"mean": con1surfT,"std": con2surfT},
-    "density": {"mean": con1density,"std": con2density}
-}
+        "dynamic_viscosity": {"mean": float(con1dynVisc), "std": float(con2dynVisc)},
+        "kinematic_viscosity": {"mean": float(con1kinVisc), "std": float(con2kinVisc)},
+        "surface_tension": {"mean": float(con1surfT), "std": float(con2surfT)},
+        "density": {"mean": float(con1density), "std": float(con2density)}
+    }
 else:
     stats = {
-    "dynamic_viscosity": {"max": con1dynVisc, "min": con2dynVisc},
-    "kinematic_viscosity": {"max": con1kinVisc,"min": con2kinVisc},
-    "surface_tension": {"max": con1surfT,"min": con2surfT},
-    "density": {"max": con1density,"min": con2density}
-}
+        "dynamic_viscosity": {"max": float(con1dynVisc), "min": float(con2dynVisc)},
+        "kinematic_viscosity": {"max": float(con1kinVisc), "min": float(con2kinVisc)},
+        "surface_tension": {"max": float(con1surfT), "min": float(con2surfT)},
+        "density": {"max": float(con1density), "min": float(con2density)}
+    }
 
 # store normalized data
 for idx in range(len(dynViscnorm)):
