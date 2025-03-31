@@ -9,8 +9,8 @@ regression:
     num_workers : 2
 
   preprocess:
-    scaler : "loginterscaler"
-    descaler : "loginterdescaler"
+    scaler : "zscaler"
+    descaler : "zdescaler"
     frame_num : 10
     time : 5
   
@@ -26,7 +26,7 @@ regression:
   real_model:
     real_num_epochs : 30
 
-  loss : "MAPE"
+  loss : "realMSLE"
 
   optimizer:
     optim_class: Adam

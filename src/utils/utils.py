@@ -5,7 +5,6 @@ from statistics import mean, stdev
 import wandb
 import importlib
 
-
 # log10 > 0 to 1
 def loginterscaler(lst):
     log_lst = torch.log10(torch.tensor(lst, dtype=torch.float32))
@@ -14,9 +13,9 @@ def loginterscaler(lst):
     scaled = (log_lst - min_val) / (max_val - min_val)
     return scaled, max_val.item(), min_val.item()
 
-def loginterdescaler(scaled_lst, property):
-    path = osp.dirname(osp.abspath(__file__))
-    stat_path = osp.join(path, "../../dataset/CFDfluid/statistics.json")
+def loginterdescaler(scaled_lst, property, path):
+    root = osp.dirname(osp.abspath(__file__))
+    stat_path = osp.join(root, "../..", path, "statistics.json")
     with open(stat_path, 'r') as file:
         data = json.load(file)
         max_val = torch.tensor(data[property]["max"], dtype=scaled_lst.dtype, device=scaled_lst.device)
@@ -30,11 +29,11 @@ def interscaler(lst):
     min_val = lst.min()
     max_val = lst.max()
     scaled = (lst - min_val) / (max_val - min_val)
-    return scaled, max_list, min_list
+    return scaled, max_val, min_val
 
-def interdescaler(scaled_lst, property):
-    path = osp.dirname(osp.abspath(__file__))
-    stat_path = osp.join(path,"../../dataset/CFDfluid/statistics.json")
+def interdescaler(scaled_lst, property, path):
+    root = osp.dirname(osp.abspath(__file__))
+    stat_path = osp.join(root, "../..", path, "statistics.json")
     with open(stat_path, 'r') as file:
         data = json.load(file)
         max_val = torch.tensor(data[property]["max"], dtype=scaled_lst.dtype, device=scaled_lst.device)
@@ -45,50 +44,50 @@ def interdescaler(scaled_lst, property):
 def zscaler(lst):
     lst = torch.tensor(lst, dtype=torch.float32)
     mean_val = lst.mean()
-    std_val = lst.stdev()
+    std_val = lst.std()
     scaled = [(x - mean_val) / (2 * std_val) + 0.5 for x in lst] 
     return scaled, mean_val, std_val
 
-def zdescaler(scaled_lst, property):
-    path = osp.dirname(osp.abspath(__file__))
-    stat_path = osp.join(path,"../../dataset/CFDfluid/statistics.json")
+def zdescaler(scaled_lst, property, path):
+    root = osp.dirname(osp.abspath(__file__))
+    stat_path = osp.join(root, "../..", path, "statistics.json")
     with open(stat_path, 'r') as file:
         data = json.load(file)
-        mean_val = torch.tensor(data[property]["mean"], device=scaled_lst.device)
-        std_val = torch.tensor(data[property]["std"], device=scaled_lst.device)
+        mean_val = torch.tensor(data[property]["mean"], dtype=scaled_lst.dtype, device=scaled_lst.device)
+        std_val = torch.tensor(data[property]["std"], dtype=scaled_lst.dtype, device=scaled_lst.device)
     descaled = (scaled_lst - 0.5) * (2 * std_val) + mean_val
-    return torch.tensor(descaled)
+    return descaled
 
 # log10 > zscore 0 to 1
 def logzscaler(lst):
-    log_lst = torch.log10(torch.tensor(lst, dtype=torch.float32)).tolist()
+    log_lst = torch.log10(torch.tensor(lst, dtype=torch.float32))
     mean_val = log_lst.mean()
-    std_val = log_lst.stdev()
-    scaled = (tensor - mean_val) / (2 * std_val) + 0.5
+    std_val = log_lst.std()
+    scaled = (log_lst - mean_val) / (2 * std_val) + 0.5
     return scaled, mean_val, std_val
 
-def logzdescaler(scaled_lst, property):
-    path = osp.dirname(osp.abspath(__file__))
-    stat_path = osp.join(path,"../../dataset/CFDfluid/statistics.json")
+def logzdescaler(scaled_lst, property, path):
+    root = osp.dirname(osp.abspath(__file__))
+    stat_path = osp.join(root, "../..", path, "statistics.json")
     with open(stat_path, 'r') as file:
         data = json.load(file)
-        mean_val = torch.tensor(data[property]["mean"], device=scaled_lst.device)
-        std_val = torch.tensor(data[property]["std"], device=scaled_lst.device)
+        mean_val = torch.tensor(data[property]["mean"], dtype=scaled_lst.dtype, device=scaled_lst.device)
+        std_val = torch.tensor(data[property]["std"], dtype=scaled_lst.dtype, device=scaled_lst.device)
     descaled = (scaled_lst - 0.5) * (2 * std_val) + mean_val
     return torch.pow(10, descaled)
 
 # MEAN ABSOLUTE PERCENTAGE ERROR
-def MAPEcalculator(pred, target, descaler, method):
+def MAPEcalculator(pred, target, descaler, method, path):
     utils = importlib.import_module("utils")
     descaler = getattr(utils, descaler)
     
-    pred_den = descaler(pred[:,0], "density").unsqueeze(-1)
-    pred_dynvisc = descaler(pred[:,1], "dynamic_viscosity").unsqueeze(-1)
-    pred_surfT = descaler(pred[:,2], "surface_tension").unsqueeze(-1)
+    pred_den = descaler(pred[:,0], "density", path).unsqueeze(-1)
+    pred_dynvisc = descaler(pred[:,1], "dynamic_viscosity", path).unsqueeze(-1)
+    pred_surfT = descaler(pred[:,2], "surface_tension", path).unsqueeze(-1)
 
-    target_den = descaler(target[:,0], "density").unsqueeze(-1)
-    target_dynvisc = descaler(target[:,1], "dynamic_viscosity").unsqueeze(-1)
-    target_surfT = descaler(target[:,2], "surface_tension").unsqueeze(-1)
+    target_den = descaler(target[:,0], "density", path).unsqueeze(-1)
+    target_dynvisc = descaler(target[:,1], "dynamic_viscosity", path).unsqueeze(-1)
+    target_surfT = descaler(target[:,2], "surface_tension", path).unsqueeze(-1)
 
     loss_mape_den = torch.mean((torch.abs(pred_den - target_den) / target_den)).unsqueeze(-1)
     loss_mape_dynvisc = torch.mean((torch.abs(pred_dynvisc - target_dynvisc) / target_dynvisc)).unsqueeze(-1)

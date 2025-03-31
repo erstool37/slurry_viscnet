@@ -94,7 +94,7 @@ scheduler_class = getattr(optim.lr_scheduler, SCHEDULER_CLASS)
 visc_model = model_class(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE, CNN, CNN_TRAIN)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 visc_model.to(device)
-criterion = criterion_class(DESCALER)
+criterion = criterion_class(DESCALER, DATA_ROOT)
 optimizer = optim_class(visc_model.parameters(), lr=LR, weight_decay=W_DECAY)
 scheduler = scheduler_class(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
@@ -110,11 +110,11 @@ for epoch in range(NUM_EPOCHS):
         if MODEL == "BayesianViscosityEstimator":
             mu, sigma = visc_model(frames)
             train_loss = criterion(mu, sigma, parameters)
-            MAPEcalculator(mu.detach(), parameters.detach(), DESCALER, "train")
+            MAPEcalculator(mu.detach(), parameters.detach(), DESCALER, "train", DATA_ROOT)
         else:
             outputs = visc_model(frames)
             train_loss = criterion(outputs, parameters)
-            MAPEcalculator(outputs.detach().cpu(), parameters.detach().cpu(), DESCALER, "train")
+            MAPEcalculator(outputs.detach().cpu(), parameters.detach().cpu(), DESCALER, "train", DATA_ROOT)
         
         train_losses.append(train_loss.item())
         optimizer.zero_grad()
@@ -138,11 +138,11 @@ for epoch in range(NUM_EPOCHS):
         if MODEL == "BayesianViscosityEstimator":
             mu, sigma = visc_model(frames)
             val_loss = criterion(mu, sigma, parameters)
-            MAPEcalculator(mu.detach(), parameters.detach(), DESCALER, "val")
+            MAPEcalculator(mu.detach(), parameters.detach(), DESCALER, "val", DATA_ROOT)
         else:
             outputs = visc_model(frames)
             val_loss = criterion(outputs, parameters)
-            MAPEcalculator(outputs.detach(), parameters.detach(), DESCALER, "val")
+            MAPEcalculator(outputs.detach(), parameters.detach(), DESCALER, "val", DATA_ROOT)
         val_losses.append(val_loss.item())
 
     mean_val_loss = mean(val_losses)
