@@ -18,6 +18,7 @@ with open(args.config, "r") as file:
 cfg = config["regression"]
 
 DATA_ROOT       = cfg["directories"]["data"]["data_root"]
+TEST_ROOT       = cfg["directories"]["data"]["test_root"]
 PARA_SUBDIR     = cfg["directories"]["data"]["para_subdir"]
 NORM_SUBDIR     = cfg["directories"]["data"]["norm_subdir"]
 NORMALIZE       = cfg["preprocess"]["scaler"]
@@ -26,6 +27,9 @@ UNNORMALIZE     = cfg["preprocess"]["descaler"]
 para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
 norm_path = osp.join(DATA_ROOT, NORM_SUBDIR)
 os.makedirs(norm_path, exist_ok=True)
+# test_para_paths = sorted(glob.glob(osp.join(TEST_ROOT, PARA_SUBDIR, "*.json")))
+# test_norm_paths = osp.join(TEST_ROOT, NORM_SUBDIR)
+# os.makedirs(test_norm_path, exist_ok=True)
 
 utils = importlib.import_module("utils")
 scaler = getattr(utils, NORMALIZE)

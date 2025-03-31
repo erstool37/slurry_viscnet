@@ -1,66 +1,57 @@
-import cv2
-import yaml
 import torch
+import torch.nn as nn
+from torchvision import models
+import datetime
+import cv2
+import wandb
+import argparse
 import numpy as np
 import os.path as osp
 import glob
-from sklearn.model_selection import train_test_split
-from src.model.ViscosityEstimator import ViscosityEstimator
-from src.model.ViscosityResnet import ViscosityResnet
-from src.utils.VideoDataset import VideoDataset
-from torch.utils.data import TensorDataset, DataLoader
-from src.utils.PreprocessorPara import logdescaler, zdescaler
+import torch.optim as optim
+from tqdm import tqdm
 from statistics import mean
-import matplotlib.pyplot as plt
-import seaborn as sns
-from collections import defaultdict
-import torch.nn.functional as F
-# from preprocess.mobile_sam import sam_model_registry, SamPredictor
+import importlib
+import yaml
+import json
+from torch.utils.data import TensorDataset, DataLoader, Dataset, Subset
+from sklearn.model_selection import train_test_split
+from datasets.VideoDataset import VideoDataset
+from utils.utils import MAPEcalculator
 
-# 1. Inference for WebGL Segmentation
-"""
-vortex_model = sam_model_registry["vit_t"](checkpoint="preprocess/model_seg/Vortex0219_01.pth")
-vortex_model.eval()
-vortex_model.cuda()
-
-#image setting
-test_image = cv2.imread("test_seg.jpg")
-test_image = test_image[0:1024, 0:1024] # required because predictor.py does not use postprocess yet
-
-#predict
-predictor = SamPredictor(vortex_model)
-predictor.set_image(image=test_image, image_format="RGB") # normalize RGB, padding, make tensor
-mask, _, _ = predictor.predict(multimask_output = False, return_logits=True) # get (256, 256) masked image with 0~255 uint8 format
-
-cv2.imwrite("test_mask.jpg", mask)
-"""
-
-# 2. Inference for CFD Viscosity Estimation
-
-with open("config_reg.yaml", "r") as file:
+with open("configs/config.yaml", "r") as file:
     config = yaml.safe_load(file)
+cfg = config["regression"]
 
-CHECKPOINT = "src/model/weights_reg/ViscSyn0330_03.pth" 
-LSTM_SIZE = int(config["settings"]["lstm_size"])
-LSTM_LAYERS = int(config["settings"]["lstm_layers"])
-FRAME_NUM = int(config["settings"]["frame_num"])
-TIME = int(config["settings"]["time"])
-OUTPUT_SIZE = int(config["settings"]["output_size"])
-DATA_ROOT = config["directories"]["data_root"]
-VIDEO_SUBDIR = config["directories"]["video_subdir"]
-PARA_SUBDIR = config["directories"]["para_subdir"]
-BATCH_SIZE = int(config["settings"]["batch_size"])
-NUM_WORKERS = int(config["settings"]["num_workers"])
-TEST_ROOT = config["directories"]["test_root"]
-DROP_RATE = float(config["settings"]["drop_rate"])
+SCALER          = cfg["preprocess"]["scaler"]
+DESCALER        = cfg["preprocess"]["descaler"]
+BATCH_SIZE      = int(cfg["train_settings"]["batch_size"])
+NUM_WORKERS     = int(cfg["train_settings"]["num_workers"])
+CHECKPOINT      = "src/models/weight_reg/CFDtrain0331_v0.pth"
+MODEL           = cfg["model"]["model_class"]
+CNN             = cfg["model"]["cnn"]
+LSTM_SIZE       = int(cfg["model"]["lstm_size"])
+LSTM_LAYERS     = int(cfg["model"]["lstm_layers"])
+FRAME_NUM       = int(cfg["preprocess"]["frame_num"])
+TIME            = int(cfg["preprocess"]["time"])
+TEST_SIZE       = float(cfg["preprocess"]["test_size"])
+RAND_STATE      = int(cfg["preprocess"]["random_state"])
+OUTPUT_SIZE     = int(cfg["model"]["output_size"])
+DATA_ROOT       = cfg["directories"]["data"]["data_root"]
+VIDEO_SUBDIR    = cfg["directories"]["data"]["video_subdir"]
+PARA_SUBDIR     = cfg["directories"]["data"]["para_subdir"]
+NORM_SUBDIR     = cfg["directories"]["data"]["norm_subdir"]
+SAVE_ROOT       = cfg["directories"]["data"]["save_root"]
+REAL_ROOT       = cfg["directories"]["data"]["real_root"]
+REAL_SAVE_ROOT  = cfg["directories"]["data"]["real_save_root"]
 
 video_paths = sorted(glob.glob(osp.join(DATA_ROOT, VIDEO_SUBDIR, "*.mp4")))
-para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
+para_paths = sorted(glob.glob(osp.join(DATA_ROOT, NORM_SUBDIR, "*.json")))
 test_video_paths = sorted(glob.glob(osp.join(TEST_ROOT, VIDEO_SUBDIR, "*.mp4")))
-test_para_paths = sorted(glob.glob(osp.join(TEST_ROOT, "parameters", "*.json"))) # for test
+test_para_paths = sorted(glob.glob(osp.join(TEST_ROOT, PARA_SUBDIR, "*.json")))
 
-train_video_paths, val_video_paths = train_test_split(video_paths, test_size=0.05, random_state=37)
-train_para_paths, val_para_paths = train_test_split(para_paths, test_size=0.05, random_state=37)
+train_video_paths, val_video_paths = train_test_split(video_paths, test_size=0.05, random_state=RAND_STATE)
+train_para_paths, val_para_paths = train_test_split(para_paths, test_size=0.05, random_state=RAND_STATE)
 
 train_ds = VideoDataset(train_video_paths, train_para_paths, FRAME_NUM, TIME)
 val_ds = VideoDataset(val_video_paths, val_para_paths, FRAME_NUM, TIME)

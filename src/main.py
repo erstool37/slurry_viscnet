@@ -32,6 +32,10 @@ PROJECT         = config["project"]
 VER             = config["version"]
 SCALER          = cfg["preprocess"]["scaler"]
 DESCALER        = cfg["preprocess"]["descaler"]
+TEST_SIZE       = float(cfg["preprocess"]["test_size"])
+RAND_STATE      = int(cfg["preprocess"]["random_state"])
+FRAME_NUM       = int(cfg["preprocess"]["frame_num"])
+TIME            = int(cfg["preprocess"]["time"])
 BATCH_SIZE      = int(cfg["train_settings"]["batch_size"])
 NUM_WORKERS     = int(cfg["train_settings"]["num_workers"])
 NUM_EPOCHS      = int(cfg["train_settings"]["num_epochs"])
@@ -45,15 +49,14 @@ REAL_CHECKPOINT = cfg["directories"]["checkpoint"]["real_checkpoint"]
 MODEL           = cfg["model"]["model_class"]
 CNN             = cfg["model"]["cnn"]
 CNN_TRAIN       = cfg["model"]["cnn_train"]
+LSTM_SIZE       = int(cfg["model"]["lstm_size"])
+LSTM_LAYERS     = int(cfg["model"]["lstm_layers"])
+OUTPUT_SIZE     = int(cfg["model"]["output_size"])
+DROP_RATE       = float(cfg["model"]["drop_rate"])
 LOSS            = cfg["loss"]
 OPTIM_CLASS     = cfg["optimizer"]["optim_class"]
 SCHEDULER_CLASS = cfg["optimizer"]["scheduler_class"]
-LSTM_SIZE       = int(cfg["model"]["lstm_size"])
-LSTM_LAYERS     = int(cfg["model"]["lstm_layers"])
-FRAME_NUM       = int(cfg["preprocess"]["frame_num"])
-TIME            = int(cfg["preprocess"]["time"])
-OUTPUT_SIZE     = int(cfg["model"]["output_size"])
-DROP_RATE       = float(cfg["model"]["drop_rate"])
+PATIENCE        = int(cfg["optimizer"]["patience"])
 DATA_ROOT       = cfg["directories"]["data"]["data_root"]
 VIDEO_SUBDIR    = cfg["directories"]["data"]["video_subdir"]
 PARA_SUBDIR     = cfg["directories"]["data"]["para_subdir"]
@@ -76,8 +79,8 @@ wandb.init(project=PROJECT, name=run_name, reinit=True, resume="never", config= 
 video_paths = sorted(glob.glob(osp.join(DATA_ROOT, VIDEO_SUBDIR, "*.mp4")))
 para_paths = sorted(glob.glob(osp.join(DATA_ROOT, NORM_SUBDIR, "*.json")))
 
-train_video_paths, val_video_paths = train_test_split(video_paths, test_size=0.2, random_state=37)
-train_para_paths, val_para_paths = train_test_split(para_paths, test_size=0.2, random_state=37)
+train_video_paths, val_video_paths = train_test_split(video_paths, test_size=TEST_SIZE, random_state=RAND_STATE)
+train_para_paths, val_para_paths = train_test_split(para_paths, test_size=TEST_SIZE, random_state=RAND_STATE)
 
 train_ds = VideoDataset(train_video_paths, train_para_paths, FRAME_NUM, TIME)
 val_ds = VideoDataset(val_video_paths, val_para_paths, FRAME_NUM, TIME)
@@ -99,6 +102,8 @@ optimizer = optim_class(visc_model.parameters(), lr=LR, weight_decay=W_DECAY)
 scheduler = scheduler_class(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
 # TRAIN MODEL
+best_val_loss = float("inf")
+counter = 0
 wandb.watch(visc_model, criterion, log="all", log_freq=10)
 for epoch in range(NUM_EPOCHS):  
     train_losses = []
@@ -131,10 +136,8 @@ for epoch in range(NUM_EPOCHS):
     val_losses = []
     with torch.no_grad():
         print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Validation")
-    
     for frames, parameters in tqdm(val_dl):
         frames, parameters = frames.to(device), parameters.to(device)
-
         if MODEL == "BayesianViscosityEstimator":
             mu, sigma = visc_model(frames)
             val_loss = criterion(mu, sigma, parameters)
@@ -148,6 +151,15 @@ for epoch in range(NUM_EPOCHS):
     mean_val_loss = mean(val_losses)
     val_losses.clear()
     wandb.log({"val_loss": mean_val_loss})
+
+    if mean_val_loss < best_val_loss:
+        best_val_loss = mean_val_loss
+        counter = 0
+    else:
+        counter += 1
+        if counter >= PATIENCE:
+            print(f"Early stopping at epoch {epoch+1}")
+            break
     scheduler.step()
     current_lr = scheduler.get_last_lr()[0]
     print(f"Epoch {epoch+1}/{NUM_EPOCHS} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.7f}")
@@ -155,9 +167,8 @@ for epoch in range(NUM_EPOCHS):
 wandb.finish()
 torch.save(visc_model.state_dict(), f"{CHECKPOINT}{today}_{VER}.pth",)
 
+# REAL WORLD DATA TRAINING
 """
-# Real World data loader
-
 # train/val dataset split
 real_video_paths = sorted(glob.glob(osp.join(REAL_SAVE_ROOT, "*.mp4")))
 real_train_paths, real_val_paths = train_test_split(video_paths, test_size=0.2, random_state=42)
