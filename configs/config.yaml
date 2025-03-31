@@ -1,18 +1,20 @@
 project: "viscosity estimation testing"
-name: "50frame_test_run"
+name: "30f_test_run"
 version: v0
 
 regression:
   train_settings:
-    batch_size : 8
+    batch_size : 16
     num_epochs : 20
-    num_workers : 2
+    num_workers : 4
 
   preprocess:
     scaler : "loginterscaler"
     descaler : "loginterdescaler"
     frame_num : 10
-    time : 5
+    time : 3
+    test_size : 0.2
+    random_state : 37
   
   model:
     model_class : "ViscosityEstimator"
@@ -26,7 +28,7 @@ regression:
   real_model:
     real_num_epochs : 30
 
-  loss : "realMSLE"
+  loss : "MAPE"
 
   optimizer:
     optim_class: Adam
@@ -34,6 +36,7 @@ regression:
     lr: 1e-4
     eta_min : 1e-8
     weight_decay: 1e-5
+    patience : 5
   
   directories:
     checkpoint :
@@ -42,14 +45,14 @@ regression:
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/CFDArchive/CFD_decay_reduced_50f_586"
+      data_root : "dataset/CFD_decay_reduced_30f_3847"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "paramtersNorm"
       save_root : "dataset/CFDfluid/processed_data" 
       real_root : "dataset/realfluid/original"
       real_save_root : "dataset/realfluid/processed_data"
-      test_root : "dataset/CFDfluid/test"
+      test_root : "dataset/CFDArchive/test"
 
 segmentation:
   settings:
