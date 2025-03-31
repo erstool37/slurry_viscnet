@@ -3,20 +3,27 @@ import torch.nn as nn
 import wandb
 import os.path as osp
 import json
-from src.utils.utils import loginterscaler, loginterdescaler, interscaler, interdescaler, zscaler, zdescaler, logzscaler, logzdescaler
+import importlib
 
 class realMSLE(nn.Module):
-    def __init__(self):
+    """
+    unnormalized into real scale and MSLE calculated
+    """
+    def __init__(self, unnormalizer):
         super(realMSLE, self).__init__()
+        self.unnormalizer = unnormalizer
 
     def forward(self, pred, target):
-        pred_den = loginterdescaler(pred[:,0], "density").unsqueeze(-1).to(pred.device)
-        pred_dynvisc = loginterdescaler(pred[:,1], "dynamic_viscosity").unsqueeze(-1).to(pred.device)
-        pred_surfT = loginterdescaler(pred[:,2], "surface_tension").unsqueeze(-1).to(pred.device)
+        utils = importlib.import_module("utils")
+        descaler = getattr(utils, unnormalizer)
 
-        target_den = loginterdescaler(target[:,0], "density").unsqueeze(-1).to(pred.device)
-        target_dynvisc = loginterdescaler(target[:,1], "dynamic_viscosity").unsqueeze(-1).to(pred.device)
-        target_surfT = loginterdescaler(target[:,2], "surface_tension").unsqueeze(-1).to(pred.device)
+        pred_den = descaler(pred[:,0], "density").unsqueeze(-1).to(pred.device)
+        pred_dynvisc = descaler(pred[:,1], "dynamic_viscosity").unsqueeze(-1).to(pred.device)
+        pred_surfT = descaler(pred[:,2], "surface_tension").unsqueeze(-1).to(pred.device)
+
+        target_den = descaler(target[:,0], "density").unsqueeze(-1).to(pred.device)
+        target_dynvisc = descaler(target[:,1], "dynamic_viscosity").unsqueeze(-1).to(pred.device)
+        target_surfT = descaler(target[:,2], "surface_tension").unsqueeze(-1).to(pred.device)
 
         loss_den = torch.mean((torch.log1p(pred_den) - torch.log1p(target_den)) ** 2).unsqueeze(-1)
         loss_dynvisc = torch.mean((torch.log1p(pred_dynvisc) - torch.log1p(target_dynvisc)) ** 2).unsqueeze(-1)

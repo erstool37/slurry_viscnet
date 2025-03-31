@@ -1,1 +1,2 @@
-python3 src/main.py -c config/config.yaml
+python3 src/utils/preprocess.py -c configs/config.yaml
+python3 src/main.py -c configs/config.yaml
