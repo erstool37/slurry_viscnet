@@ -31,15 +31,7 @@ class realMSLE(nn.Module):
         loss_surfT = torch.mean((torch.log1p(pred_surfT) - torch.log1p(target_surfT)) ** 2).unsqueeze(-1)
 
         total_loss = loss_dynvisc
-        print("pred_den", pred_den)
-        print("target_den", target_den)
-        print("loss_den", loss_den)
-        print("pred_dynvisc", pred_dynvisc)
-        print("target_dynvisc", target_dynvisc)
-        print("loss_dynvisc", loss_dynvisc)
-        print("pred_surfT", pred_surfT)
-        print("target_surfT", target_surfT)
-        print("loss_surfT", loss_surfT)
+
         wandb.log({"loss_den": loss_den})
         wandb.log({"loss_visc": loss_dynvisc})
         wandb.log({"loss_surf": loss_surfT})      

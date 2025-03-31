@@ -44,44 +44,20 @@ for path in para_paths:
         surfT.append(data["surface_tension"])
         density.append(data["density"])
 
-# normalize/store stats for MAXMIN normalizing
+# sanity check
+parameters = [dynVisc, kinVisc, surfT, density]
+for idx, lst in enumerate(parameters):
+    if max(lst) == min(lst):
+        eps = max(lst) * 1e-3
+        noise = (np.random.rand(len(lst)) * eps).tolist()
+        for j in range(len(lst)):
+            lst[j] += noise[j]
+
+# normalize/store stats
 dynViscnorm, con1dynVisc, con2dynVisc = scaler(dynVisc)
 kinViscnorm, con1kinVisc, con2kinVisc = scaler(kinVisc)
 surfTnorm, con1surfT, con2surfT = scaler(surfT)
 densitynorm, con1density, con2density = scaler(density)
-
-# sanity check
-MAXMIN = 
-
-1000
-if con1dynVisc == con2dynVisc:
-    dynViscnorm = 1
-    con1dynVisc += 1e-4
-if con1kinVisc == con2kinVisc:
-    kinViscnorm += 1e-5
-    con1kinVisc += 1e-5
-if con1surfT == con2surfT:
-    surfTnorm += 1e-5
-    con1surfT += 1e-3
-if con1density == con2density:
-    densitynorm += 1e-5
-    con1density += 100
-if con2dynVisc == 0:
-    dynViscnorm += 1e-5
-    con1dynVisc -= 1e-4
-    con2dynVisc += 1e-4
-if con2kinVisc == 0:   
-    kinViscnorm += 1e-5
-    con1kinVisc -= 1e-5 
-    con2kinVisc += 1e-5
-if con2surfT == 0:
-    surfTnorm += 1e-5
-    con1surfT -= 1e-3
-    con2surfT += 1e-3
-if con2density == 0:
-    densitynorm += 1e-5
-    con1density -= 100
-    con2density += 100
 
 if "z" in NORMALIZE:
     stats = {
