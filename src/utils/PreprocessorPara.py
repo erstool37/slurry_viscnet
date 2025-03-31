@@ -6,20 +6,31 @@ from statistics import mean, stdev
 import numpy as np
 import torch
 
-def logscaler(lst): # 0~1 scaled data
+def logscaler(lst):
+    log_lst = torch.log10(lst)
+    min_val = log_lst.min()
+    max_val = log_lst.max()
+    scaled = (log_lst - min_val) / (max_val - min_val)
+    return scaled, max_val.item(), min_val.item()
+
+def logdescaler(scaled_lst, property):
+    path = osp.dirname(osp.abspath(__file__))
+    stat_path = osp.join(path, "../../dataset/CFDfluid/statistics.json")
+    with open(stat_path, 'r') as file:
+        data = json.load(file)
+        max_val = torch.tensor(data[property]["max"], dtype=scaled_lst.dtype, device=scaled_lst.device)
+        min_val = torch.tensor(data[property]["min"], dtype=scaled_lst.dtype, device=scaled_lst.device)
+    log_val = scaled_lst * (max_val - min_val) + min_val
+    return torch.pow(10, log_val)
+
+def interscaler(lst): # 0~1 scaled data
     log_list = lst  # Apply log10 element-wise
     max_list = max(log_list)
     min_list = min(log_list)
     scaled = [(x - min_list) / (max_list - min_list) for x in log_list]
     return scaled, max_list, min_list
 
-def zscaler(lst):
-    mean_val = mean(lst)
-    std_val = stdev(lst)
-    scaled = [(x - mean_val) / (2 * std_val) + 0.5 for x in lst] 
-    return scaled, mean_val, std_val
-
-def logdescaler(scaled_lst, property):
+def interdescaler(scaled_lst, property):
     path = osp.dirname(osp.abspath(__file__))
     stat_path = osp.join(path,"../../dataset/CFDfluid/statistics.json")
     with open(stat_path, 'r') as file:
@@ -27,8 +38,13 @@ def logdescaler(scaled_lst, property):
         max_lst = torch.tensor(data[property]["max"], dtype=scaled_lst.dtype, device=scaled_lst.device)
         min_lst = torch.tensor( data[property]["min"], dtype=scaled_lst.dtype, device=scaled_lst.device)
     return scaled_lst * (max_lst - min_lst) + min_lst
+    
+def zscaler(lst): # from 0 ~ 1
+    mean_val = mean(lst)
+    std_val = stdev(lst)
+    scaled = [(x - mean_val) / (2 * std_val) + 0.5 for x in lst] 
+    return scaled, mean_val, std_val
 
-"""
 def zdescaler(scaled_lst, property):
     path = osp.dirname(osp.abspath(__file__))
     stat_path = osp.join(path,"../../dataset/CFDfluid/statistics.json")
@@ -39,16 +55,6 @@ def zdescaler(scaled_lst, property):
     descaled = [(x - 0.5) * (2 * std_lst) + mean_lst for x in scaled_lst].
 
     return torch.tensor(descaled)
-"""
-
-def zdescaler(scaled_tensor, property):
-    path = osp.dirname(osp.abspath(__file__))
-    stat_path = osp.join(path, "../../dataset/CFDfluid/statistics.json")
-    with open(stat_path, 'r') as file:
-        data = json.load(file)
-    mean = torch.tensor(data[property]["mean"], dtype=scaled_tensor.dtype, device=scaled_tensor.device)
-    std = torch.tensor(data[property]["std"], dtype=scaled_tensor.dtype, device=scaled_tensor.device)
-    return (scaled_tensor - 0.5) * (2 * std) + mean
 
 # Start normalizing
 DATA_ROOT = "dataset/CFDfluid" # use "../../dataset/CFDfluid" for creating stats.
@@ -91,7 +97,7 @@ stats = {
     "surface_tension": {"mean": maxsurfT,"std": minsurfT},
     "density": {"mean": maxdensity,"std": mindensity}
 }
-"""
+
 stats = {
     "dynamic_viscosity": {"max": maxdynVisc, "min": mindynVisc},
     "kinematic_viscosity": {"max": maxkinVisc,"min": minkinVisc},
