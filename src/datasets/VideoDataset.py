@@ -11,7 +11,6 @@ class VideoDataset(Dataset):
         self.video_paths = video_paths
         self.para_paths = para_paths
         self.frame_limit = frame_num * time
-        self.frame_count = 30
 
     def __getitem__(self, index):
         frames = self._loadvideo(self.video_paths[index], self.frame_limit)
@@ -22,7 +21,7 @@ class VideoDataset(Dataset):
         cap = cv2.VideoCapture(video_path)
         frames = []
 
-        while cap.isOpened() and len(frames) < self.frame_count:
+        while cap.isOpened() and len(frames) < self.frame_limit:
             ret, frame = cap.read()
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) # Convert BGR → RGB

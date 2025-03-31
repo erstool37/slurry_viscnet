@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import models
+import datetime
 import cv2
 import wandb
 import argparse
@@ -26,6 +27,9 @@ with open(args.config, "r") as file:
     config = yaml.safe_load(file)
 cfg = config["regression"]
 
+NAME            = config["name"]
+PROJECT         = config["project"]
+VER             = config["version"]
 BATCH_SIZE      = int(cfg["train_settings"]["batch_size"])
 NUM_WORKERS     = int(cfg["train_settings"]["num_workers"])
 NUM_EPOCHS      = int(cfg["train_settings"]["num_epochs"])
@@ -58,8 +62,13 @@ REAL_SAVE_ROOT  = cfg["directories"]["data"]["real_save_root"]
 loss_module = importlib.import_module(f"src.losses.{LOSS}")
 model_module = importlib.import_module(f"src.models.{MODEL}")
 
+today = datetime.datetime.now().strftime("%m%d")
+checkpoint = f"{CHECKPOINT}{today}_{VER}.pth"
+ckpt_name = osp.basename(checkpoint).split(".")[0]
+run_name = f"{NAME}_{ckpt_name}"
+
 # LOAD DATA
-wandb.init(project="viscosity estimation testing", reinit=True, resume="never", config= config)
+wandb.init(project=PROJECT, name=run_name, reinit=True, resume="never", config= config)
 
 video_paths = sorted(glob.glob(osp.join(DATA_ROOT, VIDEO_SUBDIR, "*.mp4")))
 para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
@@ -67,7 +76,7 @@ para_paths = sorted(glob.glob(osp.join(DATA_ROOT, PARA_SUBDIR, "*.json")))
 train_video_paths, val_video_paths = train_test_split(video_paths, test_size=0.2, random_state=37)
 train_para_paths, val_para_paths = train_test_split(para_paths, test_size=0.2, random_state=37)
 
-train_ds = VideoDataset(train_video_paths, train_para_paths, FRAME_NUM, TIME)
+train_ds = VideoDataset(train_video_paths, train_para_paths, FRAME_NUM, TIME, )
 val_ds = VideoDataset(val_video_paths, val_para_paths, FRAME_NUM, TIME)
 
 train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
@@ -102,7 +111,7 @@ for epoch in range(NUM_EPOCHS):
         else:
             outputs = visc_model(frames)
             train_loss = criterion(outputs, parameters)
-            MAPEcalculator(outputs.detach(), parameters.detach(), "train")
+            MAPEcalculator(outputs.detach().cpu(), parameters.detach().cpu(), "train")
         
         train_losses.append(train_loss.item())
         optimizer.zero_grad()
@@ -126,11 +135,12 @@ for epoch in range(NUM_EPOCHS):
         if MODEL == "BayesianViscosityEstimator":
             mu, sigma = visc_model(frames)
             val_loss = criterion(mu, sigma, parameters)
+            MAPEcalculator(mu.detach(), parameters.detach(), "val")
         else:
             outputs = visc_model(frames)
             val_loss = criterion(outputs, parameters)
+            MAPEcalculator(outputs.detach(), parameters.detach(), "val")
         val_losses.append(val_loss.item())
-        MAPEcalculator(outputs.detach(), parameters.detach(), "val")
 
     mean_val_loss = mean(val_losses)
     val_losses.clear()
@@ -140,7 +150,7 @@ for epoch in range(NUM_EPOCHS):
     print(f"Epoch {epoch+1}/{NUM_EPOCHS} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.7f}")
     val_losses.clear()
 wandb.finish()
-torch.save(visc_model.state_dict(), CHECKPOINT)
+torch.save(visc_model.state_dict(), f"{CHECKPOINT}{today}_{VER}.pth",)
 
 """
 # Real World data loader

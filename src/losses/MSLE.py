@@ -2,15 +2,16 @@ import torch
 import torch.nn as nn
 import wandb
 import torch.nn.functional as F
+import importlib
 
 class MSLE(nn.Module):
-    def __init__(self):
+    def __init__(self, unnormalizer):
         super(MSLE, self).__init__()
 
     def forward(self, pred, target):
         pred = torch.clamp(pred, min=1e-9)
         
-        loss = (torch.log1p(pred + 1e-9) - torch.log1p(target[:,:3])) ** 2 
+        loss = (torch.log1p(pred) - torch.log1p(target[:,:3])) ** 2 
 
         loss_den = loss[:, 0].mean()
         loss_dynvisc = loss[:, 1].mean()

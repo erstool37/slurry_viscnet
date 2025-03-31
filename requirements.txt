@@ -1,6 +1,6 @@
 # Syntax for terminal
 
-# vessl storage copy-file volume://vessl-storage/decayvalidation . 
+# vessl storage copy-file volume://vessl-storage/decay-visconly . 
 # apt update
 # apt install tmux
 # tmux new -s slave1

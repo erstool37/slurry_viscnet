@@ -1,29 +1,32 @@
-name: test
+project: "viscosity estimation testing"
+name: "50frame_test_run"
 version: v0
 
 regression:
   train_settings:
-    batch_size : 16
+    batch_size : 8
     num_epochs : 15
     num_workers : 2
 
   preprocess:
+    scaler : "loginterscaler"
+    descaler : "loginterdescaler"
     frame_num : 10
-    time : 10
+    time : 5
   
   model:
     model_class : "ViscosityEstimator"
     cnn : "resnet34"
     cnn_train : True
     lstm_size : 256
-    lstm_layers : 2
+    lstm_layers : 3
     output_size : 3
     drop_rate : 0.1
 
   real_model:
     real_num_epochs : 30
 
-  loss : "MSLE"
+  loss : "MAPE"
 
   optimizer:
     optim_class: Adam
@@ -35,13 +38,14 @@ regression:
   directories:
     checkpoint :
       mask_checkpoint : "src/model/weights_seg/Vortex0219_01.pth"
-      checkpoint : "src/model/weights_reg/ViscSyn0331_01.pth" # freshly trained model 
+      checkpoint : "src/model/weights_reg/CFDtrain"
       real_checkpoint : "src/model/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/CFDfluid/"
+      data_root : "dataset/CFDArchive/CFD_decay_reduced_50f_586"
       video_subdir : "videos"
-      para_subdir : "parametersNorm"
+      para_subdir : "parameters"
+      norm_subdir : "paramtersNorm"
       save_root : "dataset/CFDfluid/processed_data" 
       real_root : "dataset/realfluid/original"
       real_save_root : "dataset/realfluid/processed_data"

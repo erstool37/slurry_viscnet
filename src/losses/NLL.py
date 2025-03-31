@@ -1,11 +1,14 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from src.utils.utils import loginterscaler, loginterdescaler, interscaler, interdescaler, zscaler, zdescaler, logzscaler, logzdescaler
 import wandb
+import importlib
 
 class NLL(nn.Module):
-    def __init__(self):
+    """ 
+    Negative Log Likelihood Loss, assuming Gaussian distribution output. plz use BayesianViscosityEstimator for this loss
+    """
+    def __init__(self, unnormalizer):
         super(NLL, self).__init__()
 
     def forward(self, mu, sigma, target):
