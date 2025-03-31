@@ -37,9 +37,9 @@ regression:
   
   directories:
     checkpoint :
-      mask_checkpoint : "src/model/weights_seg/Vortex0219_01.pth"
-      checkpoint : "src/model/weights_reg/CFDtrain"
-      real_checkpoint : "src/model/weights_reg/ViscRealXXXX_01.pth"
+      mask_checkpoint : "src/models/weights_seg/Vortex0219_01.pth"
+      checkpoint : "src/models/weights_reg/CFDtrain"
+      real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
       data_root : "dataset/CFDArchive/CFD_decay_reduced_50f_586"
