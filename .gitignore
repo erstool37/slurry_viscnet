@@ -1,10 +1,5 @@
 .DS_Store
-wandb
+**/wandb/
 dataset
 dataSynWebGL
-test_mask.jpg
-test_vessl.yaml
 **/__pycache__/
-*.pyc
-src/model/__pycache__
-src/utils/__pycache__/

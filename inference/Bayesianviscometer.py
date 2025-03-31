@@ -57,7 +57,6 @@ visc_model.cuda()
 visc_model.eval()
 visc_model.load_state_dict(torch.load(CHECKPOINT))
 
-
 # Error Calculation
 errors = []
 mu_list = []

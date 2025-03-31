@@ -4,14 +4,14 @@ from torchvision import models
 import torch.nn.functional as F
 
 class BayesianViscosityEstimator(nn.Module):
-    def __init__(self, lstm_hidden_size, lstm_layers, output_size, dropout):
+    def __init__(self, lstm_hidden_size, lstm_layers, output_size, dropout, cnn, cnn_train):
         super(BayesianViscosityEstimator, self).__init__()
-        self.resnet = models.resnet18(pretrained=True)
+        self.resnet = getattr(models, cnn)(pretrained=True)
         self.cnn = nn.Sequential(*list(self.resnet.children())[:-1])
         self.cnn_out_features = 512
 
         for param in self.cnn.parameters():
-            param.requires_grad = True
+            param.requires_grad = cnn_train
 
         self.lstm = nn.LSTM(input_size=self.cnn_out_features, hidden_size=lstm_hidden_size, num_layers=lstm_layers, batch_first=True, dropout=dropout)
         
