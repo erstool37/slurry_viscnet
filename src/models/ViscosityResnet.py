@@ -2,9 +2,9 @@ import torch.nn as nn
 import torch
 from torchvision import models
 
-class ViscosityResnet(nn.Module):
+class Resnet(nn.Module):
     def __init__(self, output_size):
-        super(ViscosityResnet, self).__init__()
+        super(Resnet, self).__init__()
         self.resnet = models.resnet18(pretrained=True)
         self.cnn = nn.Sequential(*list(self.resnet.children())[:-1])
         self.cnn_out_features = 512

@@ -26,7 +26,7 @@ class MSLE(nn.Module):
         wandb.log({"loss_visc": loss_dynvisc})
         wandb.log({"loss_surf": loss_surfT})        
 
-        return loss_total 
+        return loss_total
 
 
 

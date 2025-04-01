@@ -6,7 +6,8 @@ import importlib
 
 class NLL(nn.Module):
     """ 
-    Negative Log Likelihood Loss, assuming Gaussian distribution output. plz use BayesianViscosityEstimator for this loss
+    Negative Log Likelihood Loss, Maximizing posterior assuming Gaussian distribution output, and without prior
+    use BayesianViscosityEstimator for this loss
     """
     def __init__(self, unnormalizer, path):
         super(NLL, self).__init__()
@@ -24,7 +25,6 @@ class NLL(nn.Module):
 
         wandb.log({"loss_den": loss_den})
         wandb.log({"loss_visc": loss_visc})
-        wandb.log({"loss_surf": loss_surfT})  
+        wandb.log({"loss_surf": loss_surfT})
 
         return loss_total
-        
