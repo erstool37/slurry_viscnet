@@ -76,6 +76,14 @@ def logzdescaler(scaled_lst, property, path):
     descaled = (scaled_lst - 0.5) * (2 * std_val) + mean_val
     return torch.pow(10, descaled)
 
+def noscaler(lst):
+    lst = torch.tensor(lst, dtype=torch.float32)
+    return lst, torch.tensor(1.0), torch.tensor(1.0)
+
+def nodescaler(lst, property, path):
+    lst = torch.tensor(lst, dtype=torch.float32)
+    return lst
+
 # MEAN ABSOLUTE PERCENTAGE ERROR
 def MAPEcalculator(pred, target, descaler, method, path):
     utils = importlib.import_module("utils")
