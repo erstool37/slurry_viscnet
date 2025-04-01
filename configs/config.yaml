@@ -17,7 +17,7 @@ regression:
     random_state : 37
   
   model:
-    model_class : "ViscosityEstimator"
+    model_class : "ResnetLSTM"
     cnn : "resnet34"
     cnn_train : True
     lstm_size : 256

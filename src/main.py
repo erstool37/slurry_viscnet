@@ -112,7 +112,7 @@ for epoch in range(NUM_EPOCHS):
     for frames, parameters in tqdm(train_dl):
         frames, parameters = frames.to(device), parameters.to(device) # (B, F, C, H, W) // (B, P)
         
-        if MODEL == "BayesianViscosityEstimator":
+        if MODEL == "BayesianEstimator":
             mu, sigma = visc_model(frames)
             train_loss = criterion(mu, sigma, parameters)
             MAPEcalculator(mu.detach(), parameters.detach(), DESCALER, "train", DATA_ROOT)
@@ -138,7 +138,7 @@ for epoch in range(NUM_EPOCHS):
         print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Validation")
     for frames, parameters in tqdm(val_dl):
         frames, parameters = frames.to(device), parameters.to(device)
-        if MODEL == "BayesianViscosityEstimator":
+        if MODEL == "BayesianEstimator":
             mu, sigma = visc_model(frames)
             val_loss = criterion(mu, sigma, parameters)
             MAPEcalculator(mu.detach(), parameters.detach(), DESCALER, "val", DATA_ROOT)
