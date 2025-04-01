@@ -40,7 +40,7 @@ def interdescaler(scaled_lst, property, path):
         min_val = torch.tensor( data[property]["min"], dtype=scaled_lst.dtype, device=scaled_lst.device)
     return scaled_lst * (max_val - min_val) + min_val
     
-# zscore 0 to 1
+# zscore mean to 0.5
 def zscaler(lst):
     lst = torch.tensor(lst, dtype=torch.float32)
     mean_val = lst.mean()
@@ -78,10 +78,10 @@ def logzdescaler(scaled_lst, property, path):
 
 def noscaler(lst):
     lst = torch.tensor(lst, dtype=torch.float32)
-    return lst, torch.tensor(1.0), torch.tensor(1.0)
+    constant = torch.tensor(1.0, dtype=torch.float32)
+    return lst, constant, constant 
 
 def nodescaler(lst, property, path):
-    lst = torch.tensor(lst, dtype=torch.float32)
     return lst
 
 # MEAN ABSOLUTE PERCENTAGE ERROR
@@ -104,3 +104,5 @@ def MAPEcalculator(pred, target, descaler, method, path):
     wandb.log({f"MAPE {method} den %" : loss_mape_den * 100})
     wandb.log({f"MAPE {method} dynvisc %" : loss_mape_dynvisc * 100})
     wandb.log({f"MAPE {method} surfT %" : loss_mape_surfT * 100})
+    wandb.log({f"MAPE {method} dynvisc answer mean" : target_dynvisc.mean()})
+    wandb.log({f"MAPE {method} dynvisc answer stdev" : target_dynvisc.std()})
