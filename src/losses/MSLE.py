@@ -11,9 +11,7 @@ class MSLE(nn.Module):
     def __init__(self, unnormalizer, path):
         super(MSLE, self).__init__()
 
-    def forward(self, pred, target):
-        pred = torch.clamp(pred, min=1e-6)
-        
+    def forward(self, pred, target):        
         loss = (torch.log1p(pred) - torch.log1p(target[:,:3])) ** 2 
         
         loss_den = loss[:, 0].mean()

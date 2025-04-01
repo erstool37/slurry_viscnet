@@ -1,11 +1,3 @@
-# Syntax for terminal
-
-# vessl storage copy-file volume://vessl-storage/decay-visconly . 
-# apt update
-# apt install tmux
-# tmux new -s slave1
-# tmux attach -t slave1
-
 # Requirements
 aiohappyeyeballs==2.4.4
 aiohttp==3.11.12
