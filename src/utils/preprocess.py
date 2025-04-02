@@ -43,8 +43,8 @@ density = []
 for path in para_paths:
     with open(path, 'r') as file:
         data = json.load(file)
-        dynVisc.append(data["dynamic_viscosity"])
-        kinVisc.append(data["kinematic_viscosity"])
+        dynVisc.append(10 * data["dynamic_viscosity"])
+        kinVisc.append(10 * data["kinematic_viscosity"])
         surfT.append(data["surface_tension"])
         density.append(data["density"])
 
