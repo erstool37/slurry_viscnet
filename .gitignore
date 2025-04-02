@@ -1,5 +1,8 @@
 .DS_Store
 **/wandb/
-dataset/
 dataSynWebGL
 **/__pycache__/
+**/videos/
+**/parameters/
+**/parametersNorm/
+**/statistics.json

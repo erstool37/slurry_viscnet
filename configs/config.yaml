@@ -1,6 +1,6 @@
 project: "viscosity estimation testing"
-name: "50f_test_run"
-version: v5
+name: "50f_10x_run_10x_noscale"
+version: v7
 
 regression:
   train_settings:
@@ -9,10 +9,10 @@ regression:
     num_workers : 4
 
   preprocess:
-    scaler : "loginterscaler"
-    descaler : "loginterdescaler"
+    scaler : "noscaler"    # log scaled, inter scaling works best 
+    descaler : "nodescaler"
     frame_num : 10
-    time : 3
+    time : 5
     test_size : 0.2
     random_state : 37
   
@@ -23,13 +23,14 @@ regression:
     lstm_size : 256
     lstm_layers : 3
     output_size : 3
-    drop_rate : 0.3
+    drop_rate : 0.2
 
   real_model:
     real_num_epochs : 30
 
-  loss : "MSLE"
-  # real MSLE, MSLE doesn't work well for real values
+  loss : "MSLE" 
+  # for normalized : MSLE, MAPE good for normalized values; 
+  # for raw values : MSE, NLL doesn't work well. NLL best for preventing overfitting
 
   optimizer:
     optim_class: Adam
@@ -37,19 +38,19 @@ regression:
     lr: 1e-4
     eta_min : 1e-9
     weight_decay: 1e-4
-    patience : 20
+    patience : 10
   
   directories:
     checkpoint :
-      mask_checkpoint : "src/models/weights_seg/Vortex0219_01.pth"
-      checkpoint : "src/models/weights_reg/CFDtrain"
+      mask_checkpoint : "src/weights/segmentation/Vortex0219_01.pth"
+      checkpoint : "src/weights/CFD"
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/CFDArchive/decay_viscconstant_50f_586"
+      data_root : "dataset/CFDArchive/decay-50f_10xvisc"
       video_subdir : "videos"
       para_subdir : "parameters"
-      norm_subdir : "paramtersNorm"
+      norm_subdir : "parametersNorm"
       save_root : "dataset/CFDfluid/processed_data" 
       real_root : "dataset/realfluid/original"
       real_save_root : "dataset/realfluid/processed_data"
