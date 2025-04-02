@@ -1,6 +1,6 @@
 project: "viscosity estimation testing"
-name: "50f_10x_run_10x_noscale"
-version: v7
+name: "50f_-2to1_run_init"
+version: v0
 
 regression:
   train_settings:
@@ -9,8 +9,8 @@ regression:
     num_workers : 4
 
   preprocess:
-    scaler : "noscaler"    # log scaled, inter scaling works best 
-    descaler : "nodescaler"
+    scaler : "logzscaler"    # log scaled, inter scaling works best 
+    descaler : "logzdescaler"
     frame_num : 10
     time : 5
     test_size : 0.2
@@ -23,12 +23,12 @@ regression:
     lstm_size : 256
     lstm_layers : 3
     output_size : 3
-    drop_rate : 0.2
+    drop_rate : 0.0
 
   real_model:
     real_num_epochs : 30
 
-  loss : "MSLE" 
+  loss : "MAPE" 
   # for normalized : MSLE, MAPE good for normalized values; 
   # for raw values : MSE, NLL doesn't work well. NLL best for preventing overfitting
 
@@ -37,8 +37,8 @@ regression:
     scheduler_class: CosineAnnealingLR
     lr: 1e-4
     eta_min : 1e-9
-    weight_decay: 1e-4
-    patience : 10
+    weight_decay: 0
+    patience : 15
   
   directories:
     checkpoint :
@@ -47,7 +47,7 @@ regression:
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/CFDArchive/decay-50f_10xvisc"
+      data_root : "dataset/CFDArchive/decay_5s_10fps_-2to1"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "parametersNorm"
@@ -61,7 +61,7 @@ segmentation:
     batch_size : 96
     num_workers : 128
     num_epochs : 20
-    lr_rate : 5e-4
+    lr_rate : 1e-4
     checkpoint : "preprocess/model_seg/Vortex0306_01.pth" # freshly trained model name
     base_checkpoint : "preprocess/model_seg/Vortex0219_01.pth" # pre-trained model name
 

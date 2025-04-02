@@ -165,7 +165,7 @@ for epoch in range(NUM_EPOCHS):
     print(f"Epoch {epoch+1}/{NUM_EPOCHS} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.7f}")
     val_losses.clear()
 wandb.finish()
-torch.save(visc_model.state_dict(), checkpoint)
+torch.save(visc_model.state_dict(), run_name + ".pth")
 
 # REAL WORLD DATA TRAINING
 """
