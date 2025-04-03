@@ -4,7 +4,7 @@
 **/dataSynWebGL/*
 
 dataset/CFDArchive/**/videos/*
-!dataset/CFDArchive/**.gitkeep
+!dataset/CFDArchive/**/.gitkeep
 
 dataset/CFDArchive/**/parameters/*
 !dataset/CFDArchive/**/parameters/.gitkeep
@@ -13,3 +13,6 @@ dataset/CFDArchive/**/parametersNorm/*
 !dataset/CFDArchive/**/parametersNorm/.gitkeep
 
 dataset/CFDArchive/**/statistics.json
+
+!dataset/.gitkeep
+!dataset/CFDArchive/.gitkeep
