@@ -4,7 +4,7 @@ version: v0
 
 regression:
   train_settings:
-    batch_size : 8
+    batch_size : 4
     num_epochs : 50
     num_workers : 4
 
@@ -43,7 +43,7 @@ regression:
   directories:
     checkpoint :
       mask_checkpoint : "src/weights/segmentation/Vortex0219_01.pth"
-      checkpoint : "src/weights/CFD"
+      checkpoint : "src/weights/"
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :

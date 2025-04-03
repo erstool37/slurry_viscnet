@@ -69,9 +69,11 @@ loss_module = importlib.import_module(f"losses.{LOSS}")
 model_module = importlib.import_module(f"models.{MODEL}")
 
 today = datetime.datetime.now().strftime("%m%d")
-checkpoint = f"{CHECKPOINT}{today}_{VER}.pth"
+checkpoint = f"{CHECKPOINT}{NAME}{today}_{VER}.pth"
 ckpt_name = osp.basename(checkpoint).split(".")[0]
+print(ckpt_name)
 run_name = f"{NAME}_{ckpt_name}"
+print(run_name)
 
 # LOAD DATA
 wandb.init(project=PROJECT, name=run_name, reinit=True, resume="never", config= config)

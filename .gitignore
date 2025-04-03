@@ -2,7 +2,11 @@
 **/wandb/
 dataSynWebGL
 **/__pycache__/
+
 **/videos/
 **/parameters/
 **/parametersNorm/
 **/statistics.json
+src/weights/**/*.pth
+
+!dataset/CFDArchive/.gitkeep
