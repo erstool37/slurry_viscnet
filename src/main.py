@@ -69,11 +69,8 @@ loss_module = importlib.import_module(f"losses.{LOSS}")
 model_module = importlib.import_module(f"models.{MODEL}")
 
 today = datetime.datetime.now().strftime("%m%d")
-checkpoint = f"{CHECKPOINT}{NAME}{today}_{VER}.pth"
-ckpt_name = osp.basename(checkpoint).split(".")[0]
-print(ckpt_name)
-run_name = f"{NAME}_{ckpt_name}"
-print(run_name)
+checkpoint = f"{CHECKPOINT}{NAME}_{today}_{VER}.pth"
+run_name = osp.basename(checkpoint).split(".")[0]
 
 # LOAD DATA
 wandb.init(project=PROJECT, name=run_name, reinit=True, resume="never", config= config)
@@ -167,7 +164,7 @@ for epoch in range(NUM_EPOCHS):
     print(f"Epoch {epoch+1}/{NUM_EPOCHS} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.7f}")
     val_losses.clear()
 wandb.finish()
-torch.save(visc_model.state_dict(), run_name + ".pth")
+torch.save(visc_model.state_dict(), checkpoint)
 
 # REAL WORLD DATA TRAINING
 """
