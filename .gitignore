@@ -5,6 +5,7 @@
 **/WebGLfluid/*
 
 dataset/WebGLfluid/
+inference/**/*.png
 dataset/CFDArchive/**/videos/*
 dataset/CFDArchive/**/parameters/*
 dataset/CFDArchive/**/parametersNorm/*
