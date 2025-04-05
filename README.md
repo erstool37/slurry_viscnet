@@ -17,8 +17,6 @@ You can modify `configs/config.yaml` to customize training behavior.
 ## 🚀 How to Start Training
 
 ```bash
-# Step into the project directory
 cd slurry_viscnet
-
-# Launch training
+bash scripts/setup.sh
 bash scripts/dev.sh
