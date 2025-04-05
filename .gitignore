@@ -2,7 +2,9 @@
 **/wandb/*
 **/__pycache__/
 **/dataSynWebGL/*
+**/WebGLfluid/*
 
+dataset/WebGLfluid/
 dataset/CFDArchive/**/videos/*
 dataset/CFDArchive/**/parameters/*
 dataset/CFDArchive/**/parametersNorm/*
