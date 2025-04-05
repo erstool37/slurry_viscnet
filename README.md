@@ -8,13 +8,13 @@
 
 Make sure your dataset is organized as follows:
 slurry_viscnet/  
-├── dataset/  
-│   └── CFDfluid/  
-│       └── {projectname}/  
-│           ├── parameters/  
+├── dataset/
+│   └── CFDfluid/
+│       └── {projectname}/
+│           ├── parameters/
 │           └── videos/  
-├── configs/  
-│   └── config.yaml  
+├── configs/
+│   └── config.yaml
 
 
 You can modify `configs/config.yaml` to customize training behavior.
