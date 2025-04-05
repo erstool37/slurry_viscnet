@@ -1,6 +1,6 @@
 # 🧪 Slurry Viscnet
 
-**Slurry Viscnet** is a computer vision-based viscometer designed for industrial and laboratory use, specifically targeting **Newtonian fluids**. It leverages deep learning to estimate viscosity directly from video data using hybrid modeling and CFD-trained architectures.
+**Slurry Viscnet** is a computer vision-based viscometer designed for industrial and laboratory use, specifically targeting **Newtonian fluids**. It leverages deep learning to estimate viscosity directly from video data using CFD generated datasets.
 
 ---
 
