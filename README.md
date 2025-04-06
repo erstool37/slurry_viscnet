@@ -14,6 +14,14 @@ You can modify `configs/config.yaml` to customize training behavior.
 
 ---
 
+## Example dataset
+
+# Static vortex; vicosity 10cP
+GIFGIF
+# Decaying vortex; viscosity 10cP and 1000cP (수치는 바꿔도 될듯!)
+GIFGIF
+
+
 ## 🚀 How to Start Training
 
 ```bash
