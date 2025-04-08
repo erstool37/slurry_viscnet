@@ -17,15 +17,21 @@ regression:
     random_state : 37
   
   model:
-    encoder : "ResnetLSTM"
-    flow : "realNVP"
-    flow_bool : True
-    cnn : "resnet34"
-    cnn_train : True
-    lstm_size : 256
-    lstm_layers : 3
-    output_size : 3
-    drop_rate : 0.0
+    encoder:
+      encoder: "ResnetLSTM"
+      cnn : "resnet34"
+      cnn_train : True
+      lstm_size : 256
+      lstm_layers : 3
+      output_size : 3
+      drop_rate : 0.0
+
+    flow: 
+      flow : "realNVP"
+      flow_bool : True
+      dim: 1 # dimension of total model output, currently 1 for only viscosity
+      hidden_dim: 256 # equal to the lstm hidden size
+      hidden_layers: 3 # number of s, t layers stacked
 
   real_model:
     real_num_epochs : 30

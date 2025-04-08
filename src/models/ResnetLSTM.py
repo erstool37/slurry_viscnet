@@ -3,11 +3,12 @@ import torch
 from torchvision import models
 
 class ResnetLSTM(nn.Module):
-    def __init__(self, lstm_hidden_size, lstm_layers, output_size, dropout, cnn, cnn_train):
+    def __init__(self, lstm_hidden_size, lstm_layers, output_size, dropout, cnn, cnn_train, flow_bool):
         super(ResnetLSTM, self).__init__()
         self.resnet = getattr(models, cnn)(pretrained=True)
         self.cnn = nn.Sequential(*list(self.resnet.children())[:-1])
         self.cnn_out_features = 512
+        self.flow_bool = flow_bool
 
         for param in self.cnn.parameters():
             param.requires_grad = cnn_train
@@ -25,7 +26,11 @@ class ResnetLSTM(nn.Module):
 
         lstm_out, _ = self.lstm(video_features)
         lstm_last_out = lstm_out[:, -1, :]
+        lstm_last_out = lstm_last_out.view(batch_size, -1)
         
-        viscosity = self.fc(lstm_last_out)
+        if self.flow_bool:
+            viscosity = self.fc(lstm_last_out)
+        else:
+            viscosity = lstm_last_out
         
         return viscosity

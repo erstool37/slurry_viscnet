@@ -7,7 +7,7 @@ import importlib
 class NLL(nn.Module):
     """ 
     Negative Log Likelihood Loss, Maximizing posterior assuming Gaussian distribution output, and without prior
-    use BayesianViscosityEstimator for this loss
+    use flow model for this loss
     """
     def __init__(self, unnormalizer, path):
         super(NLL, self).__init__()
