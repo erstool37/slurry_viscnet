@@ -1,4 +1,4 @@
-![staticvortex](https://github.com/user-attachments/assets/fb14f517-61c2-45de-ba7e-14aff85b2080)# 🧪 Slurry Viscnet
+🧪 Slurry Viscnet
 
 **Slurry Viscnet** is a computer vision-based viscometer designed for industrial and laboratory use, specifically targeting **Newtonian fluids**. It leverages deep learning to estimate viscosity directly from video data using CFD generated datasets.
 
