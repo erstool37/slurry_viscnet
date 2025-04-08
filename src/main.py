@@ -46,13 +46,18 @@ W_DECAY         = float(cfg["optimizer"]["weight_decay"])
 MASK_CHECKPOINT = cfg["directories"]["checkpoint"]["mask_checkpoint"]
 CHECKPOINT      = cfg["directories"]["checkpoint"]["checkpoint"]
 REAL_CHECKPOINT = cfg["directories"]["checkpoint"]["real_checkpoint"]
-MODEL           = cfg["model"]["model_class"]
-CNN             = cfg["model"]["cnn"]
-CNN_TRAIN       = cfg["model"]["cnn_train"]
-LSTM_SIZE       = int(cfg["model"]["lstm_size"])
-LSTM_LAYERS     = int(cfg["model"]["lstm_layers"])
-OUTPUT_SIZE     = int(cfg["model"]["output_size"])
-DROP_RATE       = float(cfg["model"]["drop_rate"])
+ENCODER         = cfg["model"]["encoder"]["encoder"]
+CNN             = cfg["model"]["encoder"]["cnn"]
+CNN_TRAIN       = cfg["model"]["encoder"]["cnn_train"]
+LSTM_SIZE       = int(cfg["model"]["encoder"]["lstm_size"])
+LSTM_LAYERS     = int(cfg["model"]["encoder"]["lstm_layers"])
+OUTPUT_SIZE     = int(cfg["model"]["encoder"]["output_size"])
+DROP_RATE       = float(cfg["model"]["encoder"]["drop_rate"])
+FLOW            = cfg["model"]["flow"]["flow"]
+FLOW_BOOL       = cfg["model"]["flow"]["flow_bool"]
+DIM             = int(cfg["model"]["flow"]["dim"])
+HIDDEN_DIM      = int(cfg["model"]["flow"]["hidden_dim"])
+HIDDEN_LAYERS   = int(cfg["model"]["flow"]["hidden_layers"])
 LOSS            = cfg["loss"]
 OPTIM_CLASS     = cfg["optimizer"]["optim_class"]
 SCHEDULER_CLASS = cfg["optimizer"]["scheduler_class"]
@@ -66,7 +71,8 @@ REAL_ROOT       = cfg["directories"]["data"]["real_root"]
 REAL_SAVE_ROOT  = cfg["directories"]["data"]["real_save_root"]
 
 loss_module = importlib.import_module(f"losses.{LOSS}")
-model_module = importlib.import_module(f"models.{MODEL}")
+encoder_module = importlib.import_module(f"models.{ENCODER}")
+flow_module = importlib.import_module(f"models{FLOW}")
 
 today = datetime.datetime.now().strftime("%m%d")
 checkpoint = f"{CHECKPOINT}{NAME}_{today}_{VER}.pth"
@@ -88,35 +94,39 @@ train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers
 val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # DEFINE MODEL
-model_class = getattr(model_module, MODEL)
+encoder_class = getattr(encoder_module, ENCODER)
+flow_class = getattr(flow_module, FLOW)
 criterion_class = getattr(loss_module, LOSS)
 optim_class = getattr(optim, OPTIM_CLASS)
 scheduler_class = getattr(optim.lr_scheduler, SCHEDULER_CLASS)
 
-visc_model = model_class(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE, CNN, CNN_TRAIN)
+encoder = encoder_class(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE, CNN, CNN_TRAIN)
+flow = flow_class(DIM, HIDDEN_DIM, HIDDEN_LAYERS)
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-visc_model.to(device)
+encoder.to(device)
+flow.to(device)
 criterion = criterion_class(DESCALER, DATA_ROOT)
-optimizer = optim_class(visc_model.parameters(), lr=LR, weight_decay=W_DECAY)
+optimizer = optim_class(encoder.parameters(), lr=LR, weight_decay=W_DECAY)
 scheduler = scheduler_class(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
 # TRAIN MODEL
 best_val_loss = float("inf")
 counter = 0
-wandb.watch(visc_model, criterion, log="all", log_freq=10)
+wandb.watch(encoder, criterion, log="all", log_freq=10)
 for epoch in range(NUM_EPOCHS):  
     train_losses = []
     print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Training ")  
-    visc_model.train()
+    encoder.train()
     for frames, parameters in tqdm(train_dl):
         frames, parameters = frames.to(device), parameters.to(device) # (B, F, C, H, W) // (B, P)
-        
-        if MODEL == "BayesianEstimator":
-            mu, sigma = visc_model(frames)
+        outputs = encoder(frames)
+
+        if FLOW_BOOL:
+            mu, sigma = flow(parameters, outputs)
             train_loss = criterion(mu, sigma, parameters)
             MAPEcalculator(mu.detach(), parameters.detach(), DESCALER, "train", DATA_ROOT)
         else:
-            outputs = visc_model(frames)
             train_loss = criterion(outputs, parameters)
             MAPEcalculator(outputs.detach().cpu(), parameters.detach().cpu(), DESCALER, "train", DATA_ROOT)
         
@@ -131,18 +141,18 @@ for epoch in range(NUM_EPOCHS):
     train_losses.clear()
 
     # VALIDATION
-    visc_model.eval()
+    encoder.eval()
     val_losses = []
     with torch.no_grad():
         print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Validation")
     for frames, parameters in tqdm(val_dl):
         frames, parameters = frames.to(device), parameters.to(device)
-        if MODEL == "BayesianEstimator":
-            mu, sigma = visc_model(frames)
+        if FLOW_BOOL:
+            mu, sigma = encoder(frames)
             val_loss = criterion(mu, sigma, parameters)
             MAPEcalculator(mu.detach(), parameters.detach(), DESCALER, "val", DATA_ROOT)
         else:
-            outputs = visc_model(frames)
+            outputs = encoder(frames)
             val_loss = criterion(outputs, parameters)
             MAPEcalculator(outputs.detach(), parameters.detach(), DESCALER, "val", DATA_ROOT)
         val_losses.append(val_loss.item())
@@ -164,7 +174,7 @@ for epoch in range(NUM_EPOCHS):
     print(f"Epoch {epoch+1}/{NUM_EPOCHS} results - Train Loss: {mean_train_loss:.4f} Validation Loss: {mean_val_loss:.4f} - LR: {current_lr:.7f}")
     val_losses.clear()
 wandb.finish()
-torch.save(visc_model.state_dict(), checkpoint)
+torch.save(encoder.state_dict(), checkpoint)
 
 # REAL WORLD DATA TRAINING
 """
@@ -180,31 +190,31 @@ real_train_dl = DataLoader(real_train_ds, batch_size=BATCH_SIZE, shuffle=False, 
 real_val_dl = DataLoader(real_val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
 # Freeze CNN and LSTM layers
-visc_model.load_state_dict(torch.load(CHECKPOINT))
+encoder.load_state_dict(torch.load(CHECKPOINT))
 
-for param in visc_model.cnn.parameters():
+for param in encoder.cnn.parameters():
     param.requires_grad = False
-for param in visc_model.lstm.parameters():
+for param in encoder.lstm.parameters():
     param.requires_grad = False
 
 # Fine Tuning loop definition
-visc_model.fc = nn.Linear(visc_model.fc.in_features, 1).to(device)
-optimizer = torch.optim.Adam(visc_model.fc.parameters(), lr=1e-4) #train only fc layer
+encoder.fc = nn.Linear(encoder.fc.in_features, 1).to(device)
+optimizer = torch.optim.Adam(encoder.fc.parameters(), lr=1e-4) #train only fc layer
 criterion = nn.MSELoss()
 
 # Fine Tuning Loop
 num_epochs = REAL_NUM_EPOCHS
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-visc_model.to(device)
-visc_model.train()
+encoder.to(device)
+encoder.train()
 for epoch in range(num_epochs):  
     train_losses = []
     print(f"Epoch {epoch+1}/{num_epochs} - Training ")
     for frames, parameters in real_train_dl:
         frames, parameters = frames.to(device), parameters.to(device)
         
-        outputs = visc_model(frames)
+        outputs = encoder(frames)
 
         #loss calculation/optimization
         train_loss = reg_loss(outputs, parameters)
@@ -220,14 +230,14 @@ for epoch in range(num_epochs):
     train_losses.clear()
 
     # Validation loss calculation
-    visc_model.eval()
+    encoder.eval()
     val_losses = []
     with torch.no_grad():
         print(f"Epoch {epoch+1}/{num_epochs} - Validation")
 
     for frames, parameters in real_val_dl:
         frames, parameters = frames.to(device), parameters.to(device)
-        outputs = visc_model(frames)
+        outputs = encoder(frames)
 
         val_loss = reg_loss(outputs, parameters)
         val_losses.append(val_loss.item())
@@ -241,6 +251,6 @@ wandb.finish()
 
 
 # Save the model
-torch.save(visc_model.state_dict(), REAL_CHECKPOINT)
+torch.save(encoder.state_dict(), REAL_CHECKPOINT)
 
 """

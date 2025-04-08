@@ -4,6 +4,10 @@ from torchvision import models
 import torch.nn.functional as F
 
 class BayesianEstimator(nn.Module):
+    """
+    DISCARDED, due to assumimg a Gaussian distribution for the output, and not using a prior
+    Bayesian Estimator using LSTM and CNN,
+    """
     def __init__(self, lstm_hidden_size, lstm_layers, output_size, dropout, cnn, cnn_train):
         super(BayesianEstimator, self).__init__()
         self.resnet = getattr(models, cnn)(pretrained=True)
