@@ -18,8 +18,8 @@ dataset/
 
 <table>
   <tr>
-    <td><strong>Decaying Vortex, High Viscosity</strong><br><img src="dataset/assets/decayingvortex_highvisc.gif" width="300"/></td>
-    <td><strong>Decaying Vortex, Low Viscosity</strong><br><img src="dataset/assets/decayingvortex_lowvisc.gif" width="300"/></td>
+    <td align='center'><strong>Decaying Vortex, High Viscosity</strong><br><img src="dataset/assets/decayingvortex_highvisc.gif" width="300"/></td>
+    <td align='center'><strong>Decaying Vortex, Low Viscosity</strong><br><img src="dataset/assets/decayingvortex_lowvisc.gif" width="300"/></td>
   </tr>
 </table>
 
