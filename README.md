@@ -4,7 +4,7 @@
 
 ## 📁 Repository Structure Before Training
 
-Make sure your dataset is organized as follows:
+Make sure your dataset is organized as follows:/
 slurry_viscnet/dataset/{projectname}/parameters
 slurry_viscnet/dataset/{projectname}/videos
 
