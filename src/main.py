@@ -17,7 +17,7 @@ import json
 from torch.utils.data import TensorDataset, DataLoader, Dataset, Subset
 from sklearn.model_selection import train_test_split
 from datasets.VideoDataset import VideoDataset
-from utils.utils import MAPEcalculator
+from utils.utils import MAPEcalculator, MAPEflowcalculator
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config", type=str, required=True, default="configs/config.yaml")
@@ -123,9 +123,10 @@ for epoch in range(NUM_EPOCHS):
         outputs = encoder(frames)
 
         if FLOW_BOOL:
-            mu, sigma = flow(parameters, outputs)
-            train_loss = criterion(mu, sigma, parameters)
-            MAPEcalculator(mu.detach(), parameters.detach(), DESCALER, "train", DATA_ROOT)
+            z, log_det_jacobian = flow(parameters, outputs)
+            train_loss = criterion(z, log_det_jacobian)
+            visc = flow.inverse(z, outputs)
+            MAPEflowcalculator(visc.detach(), parameters.detach(), DESCALER, "train", DATA_ROOT)
         else:
             train_loss = criterion(outputs, parameters)
             MAPEcalculator(outputs.detach().cpu(), parameters.detach().cpu(), DESCALER, "train", DATA_ROOT)
@@ -147,20 +148,23 @@ for epoch in range(NUM_EPOCHS):
         print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Validation")
     for frames, parameters in tqdm(val_dl):
         frames, parameters = frames.to(device), parameters.to(device)
+        outputs = encoder(frames)
+
         if FLOW_BOOL:
-            mu, sigma = encoder(frames)
-            val_loss = criterion(mu, sigma, parameters)
-            MAPEcalculator(mu.detach(), parameters.detach(), DESCALER, "val", DATA_ROOT)
+            z, log_det_jacobian = flow(parameters, outputs)
+            val_loss = criterion(z, log_det_jacobian)
+            visc = flow.inverse(z, outputs)
+            MAPEflowcalculator(visc.detach(), parameters.detach(), DESCALER, "val", DATA_ROOT)
         else:
-            outputs = encoder(frames)
             val_loss = criterion(outputs, parameters)
-            MAPEcalculator(outputs.detach(), parameters.detach(), DESCALER, "val", DATA_ROOT)
+            MAPEcalculator(outputs.detach().cpu(), parameters.detach().cpu(), DESCALER, "val", DATA_ROOT)
         val_losses.append(val_loss.item())
 
     mean_val_loss = mean(val_losses)
     val_losses.clear()
     wandb.log({"val_loss": mean_val_loss})
 
+    # PATIENCE
     if mean_val_loss < best_val_loss:
         best_val_loss = mean_val_loss
         counter = 0
