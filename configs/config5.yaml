@@ -1,29 +1,38 @@
 project: "viscosity estimation testing"
-name: "5s_10fps_visconly_100xvisc_run_init"
-version: v4
+name: "decay_5s_20fps_densefps_zscale"
+version: v2
 
 regression:
   train_settings:
-    batch_size : 8
+    batch_size : 4
     num_epochs : 50
     num_workers : 4
 
   preprocess:
-    scaler : "loginterscaler"    # log scaled, inter scaling works best 
-    descaler : "loginterdescaler"
-    frame_num : 10
+    scaler : "logzscaler"    # log scaled, inter scaling works best 
+    descaler : "logzdescaler"
+    frame_num : 20
     time : 5
     test_size : 0.2
     random_state : 37
   
   model:
-    model_class : "ResnetLSTM"
-    cnn : "resnet34"
-    cnn_train : True
-    lstm_size : 512
-    lstm_layers : 3
-    output_size : 3
-    drop_rate : 0.2
+    encoder:
+      encoder: "ResnetLSTM"
+      cnn : "resnet34"
+      cnn_train : True
+      lstm_size : 256
+      lstm_layers : 3
+      output_size : 3
+      drop_rate : 0.0
+
+    flow: 
+      flow : "RealNVP"
+      flow_bool : False
+      dim: 1 # dimension of total model output, currently 1 for only viscosity
+      hidden_dim: 256 # equal to the lstm hidden size
+      hidden_layers: 3 # number of s, t layers stacked
+      num_layers : 3
 
   real_model:
     real_num_epochs : 30
@@ -35,21 +44,19 @@ regression:
   optimizer:
     optim_class: Adam
     scheduler_class: CosineAnnealingLR
-    lr: 1e-4
-    eta_min : 1e-9
-    weight_decay: 1e-2
+    lr: 1e-5
+    eta_min : 1e-10
+    weight_decay: 0
     patience : 10
   
   directories:
     checkpoint :
       mask_checkpoint : "src/weights/segmentation/Vortex0219_01.pth"
-      checkpoint : "weights/"
+      checkpoint : "src/weights/"
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
-      test_checkpoint : 
 
     data :
-      data_root : "dataset/CFDArchive/decay_5s_10fps_visconly_100xvisc"
-      data_root : "dataset/CFDArchive/test"
+      data_root : "dataset/decay_5.0s_20fps_densefps"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "parametersNorm"

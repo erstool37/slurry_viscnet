@@ -14,7 +14,13 @@ class ResnetLSTM(nn.Module):
             param.requires_grad = cnn_train
 
         self.lstm = nn.LSTM(input_size=self.cnn_out_features, hidden_size=lstm_hidden_size, num_layers=lstm_layers, batch_first=True, dropout=dropout)
-        self.fc = nn.Linear(lstm_hidden_size, output_size)
+        self.fc =nn.Sequential(
+            nn.Linear(lstm_hidden_size, 256),
+            nn.ReLU(),
+            nn.Linear(256, 64),
+            nn.ReLU(),
+            nn.Linear(64, output_size),
+        )
     
     def forward(self, x):
         """ x: (batch_size, sequence_length, channels, height, width)"""
@@ -29,8 +35,8 @@ class ResnetLSTM(nn.Module):
         lstm_last_out = lstm_last_out.view(batch_size, -1)
         
         if self.flow_bool:
-            viscosity = self.fc(lstm_last_out)
-        else:
             viscosity = lstm_last_out
+        else:
+            viscosity = self.fc(lstm_last_out)
         
         return viscosity

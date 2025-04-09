@@ -107,7 +107,7 @@ def MAPEcalculator(pred, target, descaler, method, path):
     wandb.log({f"MAPE {method} dynvisc answer" : target_dynvisc.squeeze().tolist()})
     wandb.log({f"MAPE {method} surfT answer" : pred_dynvisc.squeeze().tolist()})
 
-def MAPEflowCalculator(pred, target, descaler, method, path):
+def MAPEflowcalculator(pred, target, descaler, method, path):
     """
     for flow model, prediction comes in gaussian distribution values, and must have mean of 0 and std of 1 batchwise
     

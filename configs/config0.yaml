@@ -1,6 +1,6 @@
 project: "viscosity estimation testing"
-name: "5s_10fps_-2to1_run_init"
-version: v1
+name: "decay_5s_10fps_512reso_test_init_MSLE_REGLAYERUPGRADE"
+version: v0
 
 regression:
   train_settings:
@@ -25,20 +25,14 @@ regression:
       lstm_layers : 3
       output_size : 3
       drop_rate : 0.0
-    model_class : "ResnetLSTM"
-    cnn : "resnet34"
-    cnn_train : True
-    lstm_size : 512
-    lstm_layers : 5
-    output_size : 3
-    drop_rate : 0.0
 
     flow: 
-      flow : "realNVP"
-      flow_bool : True
+      flow : "RealNVP"
+      flow_bool : False
       dim: 1 # dimension of total model output, currently 1 for only viscosity
       hidden_dim: 256 # equal to the lstm hidden size
       hidden_layers: 3 # number of s, t layers stacked
+      num_layers : 3
 
   real_model:
     real_num_epochs : 30
@@ -53,7 +47,7 @@ regression:
     lr: 1e-5
     eta_min : 1e-10
     weight_decay: 0
-    patience : 30
+    patience : 10
   
   directories:
     checkpoint :
@@ -62,7 +56,7 @@ regression:
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/CFDArchive/decay_5s_10fps_-2to1"
+      data_root : "dataset/decay_5.0s_10fps_512resolution"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "parametersNorm"

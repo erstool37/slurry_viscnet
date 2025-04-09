@@ -58,6 +58,7 @@ FLOW_BOOL       = cfg["model"]["flow"]["flow_bool"]
 DIM             = int(cfg["model"]["flow"]["dim"])
 HIDDEN_DIM      = int(cfg["model"]["flow"]["hidden_dim"])
 HIDDEN_LAYERS   = int(cfg["model"]["flow"]["hidden_layers"])
+NUM_LAYERS      = int(cfg["model"]["flow"]["num_layers"])
 LOSS            = cfg["loss"]
 OPTIM_CLASS     = cfg["optimizer"]["optim_class"]
 SCHEDULER_CLASS = cfg["optimizer"]["scheduler_class"]
@@ -72,7 +73,7 @@ REAL_SAVE_ROOT  = cfg["directories"]["data"]["real_save_root"]
 
 loss_module = importlib.import_module(f"losses.{LOSS}")
 encoder_module = importlib.import_module(f"models.{ENCODER}")
-flow_module = importlib.import_module(f"models{FLOW}")
+flow_module = importlib.import_module(f"models.{FLOW}")
 
 today = datetime.datetime.now().strftime("%m%d")
 checkpoint = f"{CHECKPOINT}{NAME}_{today}_{VER}.pth"
@@ -101,7 +102,7 @@ optim_class = getattr(optim, OPTIM_CLASS)
 scheduler_class = getattr(optim.lr_scheduler, SCHEDULER_CLASS)
 
 encoder = encoder_class(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE, CNN, CNN_TRAIN, FLOW_BOOL)
-flow = flow_class(DIM, HIDDEN_DIM, HIDDEN_LAYERS)
+flow = flow_class(DIM, HIDDEN_DIM, HIDDEN_LAYERS, NUM_LAYERS)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 encoder.to(device)
