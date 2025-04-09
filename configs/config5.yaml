@@ -1,0 +1,77 @@
+project: "viscosity estimation testing"
+name: "5s_10fps_visconly_100xvisc_run_init"
+version: v4
+
+regression:
+  train_settings:
+    batch_size : 8
+    num_epochs : 50
+    num_workers : 4
+
+  preprocess:
+    scaler : "loginterscaler"    # log scaled, inter scaling works best 
+    descaler : "loginterdescaler"
+    frame_num : 10
+    time : 5
+    test_size : 0.2
+    random_state : 37
+  
+  model:
+    model_class : "ResnetLSTM"
+    cnn : "resnet34"
+    cnn_train : True
+    lstm_size : 512
+    lstm_layers : 3
+    output_size : 3
+    drop_rate : 0.2
+
+  real_model:
+    real_num_epochs : 30
+
+  loss : "MAPE" 
+  # for normalized : MSLE, MAPE good for normalized values; 
+  # for raw values : MSE, NLL doesn't work well. NLL best for preventing overfitting
+
+  optimizer:
+    optim_class: Adam
+    scheduler_class: CosineAnnealingLR
+    lr: 1e-4
+    eta_min : 1e-9
+    weight_decay: 1e-2
+    patience : 10
+  
+  directories:
+    checkpoint :
+      mask_checkpoint : "src/weights/segmentation/Vortex0219_01.pth"
+      checkpoint : "weights/"
+      real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
+      test_checkpoint : 
+
+    data :
+      data_root : "dataset/CFDArchive/decay_5s_10fps_visconly_100xvisc"
+      data_root : "dataset/CFDArchive/test"
+      video_subdir : "videos"
+      para_subdir : "parameters"
+      norm_subdir : "parametersNorm"
+      save_root : "dataset/CFDfluid/processed_data" 
+      real_root : "dataset/realfluid/original"
+      real_save_root : "dataset/realfluid/processed_data"
+      test_root : "dataset/CFDArchive/test"
+
+segmentation:
+  settings:
+    batch_size : 96
+    num_workers : 128
+    num_epochs : 20
+    lr_rate : 1e-4
+    checkpoint : "preprocess/model_seg/Vortex0306_01.pth" # freshly trained model name
+    base_checkpoint : "preprocess/model_seg/Vortex0219_01.pth" # pre-trained model name
+
+  directories:
+    data_root : "dataset/WebGLfluid/original"
+    image_subdir : "raw"
+    mask_subdir : "masked"
+    save_root : "dataset/WebGLfluid/processed_data"
+    image_save_subdir : "images"
+    mask_save_subdir : "masks"
+    box_save_subdir : "boxes"

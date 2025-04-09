@@ -12,11 +12,13 @@ dataset/CFDArchive/**/parameters/*
 dataset/CFDArchive/**/parametersNorm/*
 dataset/CFDArchive/**/statistics.json
 
-src/weights/*.pth
-dataset/**/videos/*
-dataset/**/parameters/*
-dataset/**/paramtersNorm/*
+dataset/**/videos/
+dataset/**/parameters/
+dataset/**/parametersNorm/
 dataset/**/statistics.json
+
+src/inference/**/*.png
+src/weights/*.pth
 
 touch dataset/CFDArchive.gitkeep
 !dataset/CFDArchive.gitkeep
