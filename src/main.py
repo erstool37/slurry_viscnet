@@ -56,8 +56,8 @@ DROP_RATE       = float(cfg["model"]["encoder"]["drop_rate"])
 FLOW            = cfg["model"]["flow"]["flow"]
 FLOW_BOOL       = cfg["model"]["flow"]["flow_bool"]
 DIM             = int(cfg["model"]["flow"]["dim"])
-HIDDEN_DIM      = int(cfg["model"]["flow"]["hidden_dim"])
-HIDDEN_LAYERS   = int(cfg["model"]["flow"]["hidden_layers"])
+CON_DIM      = int(cfg["model"]["flow"]["con_dim"])
+HIDDEN_DIM   = int(cfg["model"]["flow"]["hidden_dim"])
 NUM_LAYERS      = int(cfg["model"]["flow"]["num_layers"])
 LOSS            = cfg["loss"]
 OPTIM_CLASS     = cfg["optimizer"]["optim_class"]
@@ -102,13 +102,16 @@ optim_class = getattr(optim, OPTIM_CLASS)
 scheduler_class = getattr(optim.lr_scheduler, SCHEDULER_CLASS)
 
 encoder = encoder_class(LSTM_SIZE, LSTM_LAYERS, OUTPUT_SIZE, DROP_RATE, CNN, CNN_TRAIN, FLOW_BOOL)
-flow = flow_class(DIM, HIDDEN_DIM, HIDDEN_LAYERS, NUM_LAYERS)
+flow = flow_class(DIM, CON_DIM, HIDDEN_DIM, NUM_LAYERS)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 encoder.to(device)
 flow.to(device)
 criterion = criterion_class(DESCALER, DATA_ROOT)
-optimizer = optim_class(encoder.parameters(), lr=LR, weight_decay=W_DECAY)
+if FLOW_BOOL:
+    optimizer = optim_class(list(encoder.parameters()) + list(flow.parameters()), lr=LR, weight_decay=W_DECAY)
+else:
+    optimizer = optim_class(encoder.parameters(), lr=LR, weight_decay=W_DECAY)
 scheduler = scheduler_class(optimizer, T_max=NUM_EPOCHS, eta_min=ETA_MIN)
 
 # TRAIN MODEL
@@ -124,7 +127,7 @@ for epoch in range(NUM_EPOCHS):
         outputs = encoder(frames)
 
         if FLOW_BOOL:
-            z, log_det_jacobian = flow(parameters, outputs)
+            z, log_det_jacobian = flow(parameters, outputs) # para=4, outputs=512
             train_loss = criterion(z, log_det_jacobian)
             visc = flow.inverse(z, outputs)
             MAPEflowcalculator(visc.detach(), parameters.detach(), DESCALER, "train", DATA_ROOT)

@@ -12,7 +12,7 @@ class MSLE(nn.Module):
         super(MSLE, self).__init__()
 
     def forward(self, pred, target):        
-        loss = (torch.log1p(pred) - torch.log1p(target[:,:3])) ** 2 
+        loss = (torch.log1p(pred[:,:3]) - torch.log1p(target[:,:3])) ** 2 
         
         loss_den = loss[:, 0].mean()
         loss_dynvisc = loss[:, 1].mean()

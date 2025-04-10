@@ -1,10 +1,10 @@
 project: "viscosity estimation testing"
-name: "decay_5s_10fps_512reso_test_init_MSLE_REGLAYERUPGRADE"
+name: "C-RealNVPtest_decay_5s_10fps_visconly100xvisc_test_init"
 version: v0
 
 regression:
   train_settings:
-    batch_size : 8
+    batch_size : 4
     num_epochs : 50
     num_workers : 4
 
@@ -24,29 +24,29 @@ regression:
       lstm_size : 256
       lstm_layers : 3
       output_size : 3
-      drop_rate : 0.0
+      drop_rate : 0.2
 
     flow: 
       flow : "RealNVP"
-      flow_bool : False
-      dim: 1 # dimension of total model output, currently 1 for only viscosity
-      hidden_dim: 256 # equal to the lstm hidden size
-      hidden_layers: 3 # number of s, t layers stacked
-      num_layers : 3
+      flow_bool : True
+      dim: 4 # dimension of total model output, currently 4
+      con_dim: 256 # same as lstm hidden_size
+      hidden_dim: 64 # innate dimension of flow
+      num_layers : 10 # number of s, t layers stacked
 
   real_model:
     real_num_epochs : 30
 
-  loss : "MSLE" 
+  loss : "NLL" 
   # for normalized : MSLE, MAPE good for normalized values; 
-  # for raw values : MSE, NLL doesn't work well. NLL best for preventing overfitting
+
 
   optimizer:
     optim_class: Adam
     scheduler_class: CosineAnnealingLR
     lr: 1e-5
     eta_min : 1e-10
-    weight_decay: 0
+    weight_decay: 5e-4
     patience : 10
   
   directories:
@@ -56,7 +56,7 @@ regression:
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/decay_5.0s_10fps_512resolution"
+      data_root : "dataset/CFDArchive/decay_5s_10fps_visconly_100xvisc"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "parametersNorm"
