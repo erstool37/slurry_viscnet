@@ -8,6 +8,7 @@ regression:
     num_epochs : 50
     num_workers : 4
     seed : 1205
+    dataset : "VideoDataset"
 
   preprocess:
     scaler : "loginterscaler"    # log scaled, inter scaling works best 

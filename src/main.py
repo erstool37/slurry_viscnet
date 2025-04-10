@@ -45,6 +45,7 @@ REAL_NUM_EPOCHS = int(cfg["real_model"]["real_num_epochs"])
 LR              = float(cfg["optimizer"]["lr"])
 ETA_MIN         = float(cfg["optimizer"]["eta_min"])
 W_DECAY         = float(cfg["optimizer"]["weight_decay"])
+DATASET         = cfg["dataset"]
 MASK_CHECKPOINT = cfg["directories"]["checkpoint"]["mask_checkpoint"]
 CHECKPOINT      = cfg["directories"]["checkpoint"]["checkpoint"]
 REAL_CHECKPOINT = cfg["directories"]["checkpoint"]["real_checkpoint"]
@@ -75,6 +76,7 @@ REAL_SAVE_ROOT  = cfg["directories"]["data"]["real_save_root"]
 
 set_seed(SEED)
 
+dataset_module = importlib.import_module(f"datasets.{DATASET}}")
 loss_module = importlib.import_module(f"losses.{LOSS}")
 encoder_module = importlib.import_module(f"models.{ENCODER}")
 flow_module = importlib.import_module(f"models.{FLOW}")
@@ -99,6 +101,7 @@ train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers
 val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, prefetch_factor=None, persistent_workers=False)
 
 # DEFINE MODEL
+dataset_class = getattr(dataset_module, DATASET)
 encoder_class = getattr(encoder_module, ENCODER)
 flow_class = getattr(flow_module, FLOW)
 criterion_class = getattr(loss_module, LOSS)
