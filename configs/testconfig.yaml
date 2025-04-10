@@ -1,7 +1,3 @@
-project: "viscosity estimation testing"
-name: "decay_5s_20fps_densefps_test_second"
-version: v0
-
 regression:
   train_settings:
     batch_size : 4
@@ -25,7 +21,7 @@ regression:
       lstm_size : 256
       lstm_layers : 3
       output_size : 3
-      drop_rate : 0.3
+      drop_rate : 0
 
     flow: 
       flow : "RealNVP"
@@ -52,11 +48,11 @@ regression:
   directories:
     checkpoint :
       mask_checkpoint : "src/weights/segmentation/Vortex0219_01.pth"
-      checkpoint : "src/weights/"
+      checkpoint : "src/weights/decay_5s_10fps_512reso_test_init_MAPE_0409_v1.pth"
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/decay_5.0s_20fps_densefps"
+      data_root : "dataset/decay_5.0s_10fps_512resolution"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "parametersNorm"

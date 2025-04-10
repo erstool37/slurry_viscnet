@@ -1,5 +1,7 @@
-python3 src/utils/preprocess.py -c configs/config0.yaml
-python3 src/main.py -c configs/config0.yaml
+# TESTING
+
+# python3 src/utils/preprocess.py -c configs/config0.yaml
+# python3 src/main.py -c configs/config0.yaml
 # python3 src/utils/preprocess.py -c configs/config1.yaml
 # python3 src/main.py -c configs/config1.yaml
 # python3 src/utils/preprocess.py -c configs/config2.yaml
@@ -19,5 +21,6 @@ python3 src/main.py -c configs/config0.yaml
 # python3 src/utils/preprocess.py -c configs/config9.yaml
 # python3 src/main.py -c configs/config9.yaml
 
-# python3 src/utils/preprocess.py -c configs/config2.yaml
-# python3 src/main.py -c configs/config2.yaml
+# Precision test for good training
+python3 src/utils/preprocess.py -c configs/testconfig.yaml
+python3 src/inference/viscometer.py -c configs/testconfig.yaml

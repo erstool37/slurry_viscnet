@@ -1,6 +1,6 @@
 project: "viscosity estimation testing"
-name: "decay_5s_20fps_densefps_test_second"
-version: v0
+name: "decay_5s_10fps_512resolution_test_second"
+version: v1
 
 regression:
   train_settings:
@@ -10,8 +10,8 @@ regression:
     seed : 1205
 
   preprocess:
-    scaler : "loginterscaler"    # log scaled, inter scaling works best 
-    descaler : "loginterdescaler"
+    scaler : "logzscaler"    # log scaled, inter scaling works best 
+    descaler : "logzdescaler"
     frame_num : 10
     time : 5
     test_size : 0.2
@@ -38,7 +38,7 @@ regression:
   real_model:
     real_num_epochs : 30
 
-  loss : "MAPE" 
+  loss : "MSLE" 
   # for normalized : MSLE, MAPE good for normalized values; 
 
   optimizer:
@@ -56,7 +56,7 @@ regression:
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/decay_5.0s_20fps_densefps"
+      data_root : "dataset/decay_5.0s_10fps_512resolution"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "parametersNorm"

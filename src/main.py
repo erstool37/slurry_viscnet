@@ -16,8 +16,9 @@ import yaml
 import json
 from torch.utils.data import TensorDataset, DataLoader, Dataset, Subset
 from sklearn.model_selection import train_test_split
-from datasets.VideoDataset import VideoDataset
+from dataset.VideoDataset import VideoDataset
 from utils.utils import MAPEcalculator, MAPEflowcalculator
+from utils.setseed import set_seed
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config", type=str, required=True, default="configs/config.yaml")
@@ -39,6 +40,7 @@ TIME            = int(cfg["preprocess"]["time"])
 BATCH_SIZE      = int(cfg["train_settings"]["batch_size"])
 NUM_WORKERS     = int(cfg["train_settings"]["num_workers"])
 NUM_EPOCHS      = int(cfg["train_settings"]["num_epochs"])
+SEED            = int(cfg["train_settings"]["seed"])
 REAL_NUM_EPOCHS = int(cfg["real_model"]["real_num_epochs"])
 LR              = float(cfg["optimizer"]["lr"])
 ETA_MIN         = float(cfg["optimizer"]["eta_min"])
@@ -56,8 +58,8 @@ DROP_RATE       = float(cfg["model"]["encoder"]["drop_rate"])
 FLOW            = cfg["model"]["flow"]["flow"]
 FLOW_BOOL       = cfg["model"]["flow"]["flow_bool"]
 DIM             = int(cfg["model"]["flow"]["dim"])
-CON_DIM      = int(cfg["model"]["flow"]["con_dim"])
-HIDDEN_DIM   = int(cfg["model"]["flow"]["hidden_dim"])
+CON_DIM         = int(cfg["model"]["flow"]["con_dim"])
+HIDDEN_DIM      = int(cfg["model"]["flow"]["hidden_dim"])
 NUM_LAYERS      = int(cfg["model"]["flow"]["num_layers"])
 LOSS            = cfg["loss"]
 OPTIM_CLASS     = cfg["optimizer"]["optim_class"]
@@ -70,6 +72,8 @@ NORM_SUBDIR     = cfg["directories"]["data"]["norm_subdir"]
 SAVE_ROOT       = cfg["directories"]["data"]["save_root"]
 REAL_ROOT       = cfg["directories"]["data"]["real_root"]
 REAL_SAVE_ROOT  = cfg["directories"]["data"]["real_save_root"]
+
+set_seed(SEED)
 
 loss_module = importlib.import_module(f"losses.{LOSS}")
 encoder_module = importlib.import_module(f"models.{ENCODER}")
