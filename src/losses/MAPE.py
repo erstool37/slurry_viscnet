@@ -30,7 +30,7 @@ class MAPE(nn.Module):
         loss_dynvisc = torch.mean((torch.abs(pred_dynvisc - target_dynvisc) / target_dynvisc)).unsqueeze(-1)
         loss_surfT = torch.mean((torch.abs(pred_surfT - target_surfT) / target_surfT)).unsqueeze(-1)
 
-        total_loss = loss_dynvisc
+        total_loss = loss_den + loss_dynvisc + loss_surfT
         
         # wandb.log({"loss_den": loss_den})
         wandb.log({"loss_visc": loss_dynvisc})
