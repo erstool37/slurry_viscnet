@@ -1,6 +1,6 @@
 project: "viscosity estimation testing"
-name: "decay_5s_10fps_highrpm_testrun"
-version: v1
+name: "decay_5s_10fps_lowrpm_testrun"
+version: v2
 
 regression:
   train_settings:
@@ -57,7 +57,7 @@ regression:
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/decay_5s_10fps_highrpm"
+      data_root : "dataset/decay_5s_10fps_lowrpm"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "parametersNorm"

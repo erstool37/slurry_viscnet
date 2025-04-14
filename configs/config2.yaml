@@ -1,13 +1,14 @@
 project: "viscosity estimation testing"
-name: "decay_5s_10fps_512resolution_test_second"
-version: v1
+name: "decay_5s_10fps_highrpm_testrun"
+version: v2
 
 regression:
   train_settings:
-    batch_size : 4
+    batch_size : 2
     num_epochs : 50
     num_workers : 4
     seed : 1205
+    dataset : "VideoDataset"
 
   preprocess:
     scaler : "logzscaler"    # log scaled, inter scaling works best 
@@ -47,7 +48,7 @@ regression:
     lr: 1e-5
     eta_min : 1e-10
     weight_decay: 5e-4
-    patience : 10
+    patience : 15
   
   directories:
     checkpoint :
@@ -56,7 +57,7 @@ regression:
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/decay_5.0s_10fps_512resolution"
+      data_root : "dataset/decay_5s_10fps_highrpm"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "parametersNorm"

@@ -1,10 +1,10 @@
 project: "viscosity estimation testing"
-name: "decay_5s_20fps_densefps_test_second"
+name: "decay_5s_10fps_highrpm_testrun"
 version: v0
 
 regression:
   train_settings:
-    batch_size : 4
+    batch_size : 2
     num_epochs : 50
     num_workers : 4
     seed : 1205
@@ -48,7 +48,7 @@ regression:
     lr: 1e-5
     eta_min : 1e-10
     weight_decay: 5e-4
-    patience : 10
+    patience : 15
   
   directories:
     checkpoint :
@@ -57,7 +57,7 @@ regression:
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/decay_5.0s_20fps_densefps"
+      data_root : "dataset/decay_5s_10fps_highrpm"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "parametersNorm"

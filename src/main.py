@@ -16,7 +16,7 @@ import yaml
 import json
 from torch.utils.data import TensorDataset, DataLoader, Dataset, Subset
 from sklearn.model_selection import train_test_split
-from dataset.VideoDataset import VideoDataset
+from datasets.VideoDataset import VideoDataset
 from utils.utils import MAPEcalculator, MAPEflowcalculator
 from utils.setseed import set_seed
 
@@ -41,11 +41,11 @@ BATCH_SIZE      = int(cfg["train_settings"]["batch_size"])
 NUM_WORKERS     = int(cfg["train_settings"]["num_workers"])
 NUM_EPOCHS      = int(cfg["train_settings"]["num_epochs"])
 SEED            = int(cfg["train_settings"]["seed"])
+DATASET         = cfg["train_settings"]["dataset"]
 REAL_NUM_EPOCHS = int(cfg["real_model"]["real_num_epochs"])
 LR              = float(cfg["optimizer"]["lr"])
 ETA_MIN         = float(cfg["optimizer"]["eta_min"])
 W_DECAY         = float(cfg["optimizer"]["weight_decay"])
-DATASET         = cfg["dataset"]
 MASK_CHECKPOINT = cfg["directories"]["checkpoint"]["mask_checkpoint"]
 CHECKPOINT      = cfg["directories"]["checkpoint"]["checkpoint"]
 REAL_CHECKPOINT = cfg["directories"]["checkpoint"]["real_checkpoint"]
@@ -76,7 +76,7 @@ REAL_SAVE_ROOT  = cfg["directories"]["data"]["real_save_root"]
 
 set_seed(SEED)
 
-dataset_module = importlib.import_module(f"datasets.{DATASET}}")
+dataset_module = importlib.import_module(f"datasets.{DATASET}")
 loss_module = importlib.import_module(f"losses.{LOSS}")
 encoder_module = importlib.import_module(f"models.{ENCODER}")
 flow_module = importlib.import_module(f"models.{FLOW}")

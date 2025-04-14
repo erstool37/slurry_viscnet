@@ -1,5 +1,5 @@
 project: "viscosity estimation testing"
-name: "decay_5s_10fps_highrpm_testrun"
+name: "decay_5s_10fps_lowrpm_testrun"
 version: v1
 
 regression:
@@ -11,8 +11,8 @@ regression:
     dataset : "VideoDataset"
 
   preprocess:
-    scaler : "loginterscaler"    # log scaled, inter scaling works best 
-    descaler : "loginterdescaler"
+    scaler : "logzscaler"    # log scaled, inter scaling works best 
+    descaler : "logzdescaler"
     frame_num : 10
     time : 5
     test_size : 0.2
@@ -57,7 +57,7 @@ regression:
       real_checkpoint : "src/models/weights_reg/ViscRealXXXX_01.pth"
 
     data :
-      data_root : "dataset/decay_5s_10fps_highrpm"
+      data_root : "dataset/decay_5s_10fps_lowrpm"
       video_subdir : "videos"
       para_subdir : "parameters"
       norm_subdir : "parametersNorm"
